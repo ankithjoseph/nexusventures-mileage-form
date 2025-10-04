@@ -8,8 +8,9 @@ import { CapitalAllowancesSection } from "@/components/CapitalAllowancesSection"
 import { DeclarationSection } from "@/components/DeclarationSection";
 import { LogbookData, TripRow, createEmptyLogbook } from "@/types/logbook";
 import { generatePDF } from "@/utils/pdfGenerator";
-import { Download, Save, Upload, FileText } from "lucide-react";
+import { Download, Save, Upload, FileText, Linkedin, Globe } from "lucide-react";
 import { toast } from "sonner";
+import nexusLogo from "@/assets/nexus-ventures-logo.png";
 
 const Index = () => {
   const [formData, setFormData] = useState<LogbookData>(createEmptyLogbook());
@@ -93,14 +94,21 @@ const Index = () => {
       <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-                <FileText className="w-6 h-6" />
-                Business Mileage Logbook
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Ireland – Employee/Director, Tax Year 2024
-              </p>
+            <div className="flex items-center gap-4">
+              <img 
+                src={nexusLogo} 
+                alt="Nexus Ventures Logo" 
+                className="h-12 w-auto object-contain"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
+                  <FileText className="w-6 h-6" />
+                  Business Mileage Logbook
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Ireland – Employee/Director, Tax Year 2024
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleLoadData} variant="outline" size="sm">
@@ -170,9 +178,40 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-card border-t mt-12">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>Business Mileage Logbook – Ireland Tax Year 2024</p>
-          <p className="mt-1">For tax compliance purposes. Keep records for at least 6 years.</p>
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <img 
+                src={nexusLogo} 
+                alt="Nexus Ventures" 
+                className="h-8 w-auto object-contain"
+              />
+            </div>
+            <div className="text-center">
+              <p>Business Mileage Logbook – Ireland Tax Year 2024</p>
+              <p className="mt-1">For tax compliance purposes. Keep records for at least 6 years.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <a 
+                href="https://www.nexusventures.eu" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-primary transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+                www.nexusventures.eu
+              </a>
+              <a 
+                href="https://www.linkedin.com/company/nexusventures" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-primary transition-colors"
+              >
+                <Linkedin className="w-4 h-4" />
+                LinkedIn
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
