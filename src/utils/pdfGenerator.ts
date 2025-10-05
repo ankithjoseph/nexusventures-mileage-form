@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { LogbookData } from '@/types/logbook';
+import logoImage from '@/assets/nexus-ventures-logo.png';
 
 export const generatePDF = (data: LogbookData, includeFillableFields: boolean = false) => {
   const doc = new jsPDF();
@@ -9,13 +10,22 @@ export const generatePDF = (data: LogbookData, includeFillableFields: boolean = 
   const pageWidth = 210; // A4 width in mm
   const contentWidth = pageWidth - marginLeft - marginRight;
   
-  let yPos = 20;
+  let yPos = 15;
+
+  // Add logo
+  try {
+    const logoWidth = 40;
+    const logoHeight = 12;
+    doc.addImage(logoImage, 'PNG', pageWidth - marginRight - logoWidth, yPos, logoWidth, logoHeight);
+  } catch (error) {
+    console.error('Error adding logo to PDF:', error);
+  }
 
   // Title
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Business Mileage Logbook – Ireland', marginLeft, yPos);
-  yPos += 6;
+  doc.text('Business Mileage Logbook – Ireland', marginLeft, yPos + 5);
+  yPos += 11;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('Employee/Director, Tax Year 2024', marginLeft, yPos);
