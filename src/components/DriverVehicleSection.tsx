@@ -2,6 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 interface DriverVehicleSectionProps {
   data: any;
@@ -10,7 +12,8 @@ interface DriverVehicleSectionProps {
 
 export const DriverVehicleSection = ({ data, onChange }: DriverVehicleSectionProps) => {
   return (
-    <Card className="p-6">
+    <TooltipProvider>
+      <Card className="p-6">
       <h2 className="text-lg font-semibold mb-4 text-primary">Driver & Vehicle Information</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-2">
@@ -77,9 +80,26 @@ export const DriverVehicleSection = ({ data, onChange }: DriverVehicleSectionPro
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="co2_g_km" className="text-sm font-medium">
-            CO₂ (g/km) <span className="text-destructive">*</span>
-          </Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="co2_g_km" className="text-sm font-medium">
+              CO₂ (g/km) <span className="text-destructive">*</span>
+            </Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-2">¿Dónde encontrar el CO₂?</p>
+                  <ul className="text-sm space-y-1">
+                    <li>• En el certificado de registro del vehículo</li>
+                    <li>• En <a href="https://www.motorcheck.ie" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">motorcheck.ie</a> (gratis con matrícula)</li>
+                    <li>• En el manual del vehículo</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <Input
             id="co2_g_km"
             type="number"
@@ -120,5 +140,6 @@ export const DriverVehicleSection = ({ data, onChange }: DriverVehicleSectionPro
         </div>
       </div>
     </Card>
+    </TooltipProvider>
   );
 };

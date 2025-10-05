@@ -8,9 +8,10 @@ import { CapitalAllowancesSection } from "@/components/CapitalAllowancesSection"
 import { DeclarationSection } from "@/components/DeclarationSection";
 import { LogbookData, TripRow, createEmptyLogbook } from "@/types/logbook";
 import { generatePDF } from "@/utils/pdfGenerator";
-import { Download, Save, Upload, FileText, Linkedin, Globe } from "lucide-react";
+import { Download, Save, Upload, FileText, Linkedin, Globe, Send } from "lucide-react";
 import { toast } from "sonner";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [formData, setFormData] = useState<LogbookData>(createEmptyLogbook());
@@ -36,14 +37,58 @@ const Index = () => {
     });
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
       const pdf = generatePDF(formData, false);
       pdf.save(`business-mileage-logbook-${new Date().toISOString().split('T')[0]}.pdf`);
-      toast.success("PDF exported successfully!");
+      
+      // Send summary email
+      await handleSendSummary();
+      
+      toast.success("PDF exported and summary email sent!");
     } catch (error) {
       toast.error("Failed to export PDF");
       console.error(error);
+    }
+  };
+
+  const handleSendSummary = async () => {
+    try {
+      const totalRunningCosts = 
+        Number(formData.fuel_eur || 0) +
+        Number(formData.insurance_eur || 0) +
+        Number(formData.motor_tax_eur || 0) +
+        Number(formData.repairs_maintenance_eur || 0) +
+        Number(formData.nct_testing_eur || 0) +
+        Number(formData.other_eur || 0);
+
+      const summary = {
+        driver_name: formData.driver_name,
+        ppsn: formData.ppsn,
+        vehicle_registration: formData.vehicle_registration,
+        total_km_business: formData.total_km_business,
+        business_percent: formData.business_percent,
+        total_running_costs: totalRunningCosts,
+        fuel_eur: formData.fuel_eur,
+        insurance_eur: formData.insurance_eur,
+        motor_tax_eur: formData.motor_tax_eur,
+        repairs_maintenance_eur: formData.repairs_maintenance_eur,
+        nct_testing_eur: formData.nct_testing_eur,
+        other_eur: formData.other_eur,
+        car_cost_eur: formData.car_cost_eur,
+        co2_band: formData.co2_band,
+      };
+
+      const { error } = await supabase.functions.invoke('send-logbook-summary', {
+        body: summary
+      });
+
+      if (error) throw error;
+      
+      console.log("Summary email sent successfully");
+    } catch (error) {
+      console.error("Error sending summary email:", error);
+      // Don't show error to user as PDF was still generated
     }
   };
 
