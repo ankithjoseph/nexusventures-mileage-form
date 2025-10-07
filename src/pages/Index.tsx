@@ -42,9 +42,42 @@ const Index = () => {
     try {
       setIsSubmitting(true);
 
-      // Validar campos requeridos
+      // Validar campos requeridos básicos
       if (!formData.driver_name || !formData.driver_email) {
         toast.error("Por favor complete el nombre del conductor y el email");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.driver_email)) {
+        toast.error("Por favor ingrese un email válido");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar que haya al menos un viaje con datos
+      const hasValidTrip = formData.trips.some(trip => 
+        trip.date && trip.from && trip.to && trip.business_km
+      );
+
+      if (!hasValidTrip) {
+        toast.error("Por favor complete al menos un viaje con fecha, origen, destino y kilómetros");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar registro del vehículo
+      if (!formData.vehicle_registration || formData.vehicle_registration.trim() === '') {
+        toast.error("Por favor ingrese el registro del vehículo");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar firma y fecha
+      if (!formData.signature || !formData.signed_date) {
+        toast.error("Por favor complete la firma y fecha en la sección de Declaration");
         setIsSubmitting(false);
         return;
       }
