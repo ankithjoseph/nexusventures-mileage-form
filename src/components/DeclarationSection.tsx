@@ -1,13 +1,17 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 
 interface DeclarationSectionProps {
   data: any;
   onChange: (field: string, value: string) => void;
+  onSubmit: () => void;
+  isSubmitting?: boolean;
 }
 
-export const DeclarationSection = ({ data, onChange }: DeclarationSectionProps) => {
+export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = false }: DeclarationSectionProps) => {
   return (
     <Card className="p-6 bg-muted/30">
       <h2 className="text-lg font-semibold mb-4 text-primary">Declaration & Signature</h2>
@@ -43,6 +47,18 @@ export const DeclarationSection = ({ data, onChange }: DeclarationSectionProps) 
             onChange={(e) => onChange('signed_date', e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <Button 
+          onClick={onSubmit} 
+          disabled={isSubmitting}
+          size="lg"
+          className="min-w-[200px]"
+        >
+          <Send className="w-4 h-4 mr-2" />
+          {isSubmitting ? "Enviando..." : "Enviar Registro"}
+        </Button>
       </div>
     </Card>
   );

@@ -30,6 +30,20 @@ export const DriverVehicleSection = ({ data, onChange }: DriverVehicleSectionPro
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="driver_email" className="text-sm font-medium">
+            Email <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="driver_email"
+            type="email"
+            value={data.driver_email}
+            onChange={(e) => onChange('driver_email', e.target.value)}
+            placeholder="john.doe@example.com"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="ppsn" className="text-sm font-medium">
             PPSN <span className="text-destructive">*</span>
           </Label>

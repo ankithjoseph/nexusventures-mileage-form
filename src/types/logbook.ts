@@ -13,6 +13,7 @@ export interface TripRow {
 export interface LogbookData {
   // Driver & Vehicle
   driver_name: string;
+  driver_email: string;
   ppsn: string;
   vehicle_registration: string;
   vehicle_make_model: string;
@@ -62,6 +63,7 @@ export const createEmptyTrip = (): TripRow => ({
 
 export const createEmptyLogbook = (): LogbookData => ({
   driver_name: '',
+  driver_email: '',
   ppsn: '',
   vehicle_registration: '',
   vehicle_make_model: '',

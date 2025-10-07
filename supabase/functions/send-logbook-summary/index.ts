@@ -8,21 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface LogbookSummary {
+interface LogbookSubmission {
   driver_name: string;
-  ppsn: string;
+  driver_email: string;
   vehicle_registration: string;
-  total_km_business: number | string;
-  business_percent: number | string;
-  total_running_costs: number;
-  fuel_eur: number | string;
-  insurance_eur: number | string;
-  motor_tax_eur: number | string;
-  repairs_maintenance_eur: number | string;
-  nct_testing_eur: number | string;
-  other_eur: number | string;
-  car_cost_eur: number | string;
-  co2_band: string;
+  pdfData: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -31,122 +21,108 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const summary: LogbookSummary = await req.json();
+    const submission: LogbookSubmission = await req.json();
     
-    console.log("Sending logbook summary email for:", summary.driver_name);
+    console.log("Sending logbook emails for:", submission.driver_name);
 
-    const businessKm = Number(summary.total_km_business) || 0;
-    const businessPercent = Number(summary.business_percent) || 0;
-    const fuelCost = Number(summary.fuel_eur) || 0;
-    const insuranceCost = Number(summary.insurance_eur) || 0;
-    const motorTaxCost = Number(summary.motor_tax_eur) || 0;
-    const repairsCost = Number(summary.repairs_maintenance_eur) || 0;
-    const nctCost = Number(summary.nct_testing_eur) || 0;
-    const otherCost = Number(summary.other_eur) || 0;
-    
-    const totalRunningCosts = fuelCost + insuranceCost + motorTaxCost + repairsCost + nctCost + otherCost;
-    const deductibleRunningCosts = totalRunningCosts * (businessPercent / 100);
-
-    const emailResponse = await resend.emails.send({
+    // Email al administrador (jesus@irishtaxagents.com)
+    const adminEmail = await resend.emails.send({
       from: "Nexus Ventures Logbook <onboarding@resend.dev>",
       to: ["jesus@irishtaxagents.com"],
-      subject: `Logbook Summary - ${summary.driver_name} (${summary.vehicle_registration})`,
+      subject: `Nuevo Registro de Mileage - ${submission.driver_name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
-            Business Mileage Logbook Summary
+            Nuevo Registro de Business Mileage
           </h1>
           
-          <h2 style="color: #2d3748; margin-top: 30px;">Client Information</h2>
-          <table style="width: 100%; border-collapse: collapse;">
+          <p style="font-size: 16px; margin: 20px 0;">
+            Se ha recibido un nuevo registro de mileage logbook.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Driver Name:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${summary.driver_name}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Conductor:</strong></td>
+              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${submission.driver_name}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>PPSN:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${summary.ppsn}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Email:</strong></td>
+              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${submission.driver_email}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Vehicle Registration:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${summary.vehicle_registration}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Vehículo:</strong></td>
+              <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${submission.vehicle_registration}</td>
             </tr>
           </table>
 
-          <h2 style="color: #2d3748; margin-top: 30px;">Income Tax Declaration Data</h2>
+          <p style="color: #718096; font-size: 14px; margin-top: 30px;">
+            El formulario completo está adjunto en formato PDF.
+          </p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `logbook-${submission.driver_name.replace(/\s+/g, '-')}.pdf`,
+          content: submission.pdfData,
+        },
+      ],
+    });
+
+    console.log("Admin email sent:", adminEmail);
+
+    // Email de confirmación al usuario
+    const userEmail = await resend.emails.send({
+      from: "Nexus Ventures <onboarding@resend.dev>",
+      to: [submission.driver_email],
+      subject: "Confirmación de Registro - Business Mileage Logbook",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
+            Gracias por su registro
+          </h1>
           
+          <p style="font-size: 16px; margin: 20px 0;">
+            Estimado/a ${submission.driver_name},
+          </p>
+
+          <p style="font-size: 16px; margin: 20px 0;">
+            Hemos recibido exitosamente su formulario de Business Mileage Logbook. 
+            Adjuntamos una copia del mismo para sus registros.
+          </p>
+
           <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #1a365d; margin-top: 0;">Business Mileage</h3>
-            <p style="font-size: 18px; margin: 10px 0;">
-              <strong>Total Business KM:</strong> ${businessKm.toLocaleString()} km
-            </p>
-            <p style="font-size: 18px; margin: 10px 0;">
-              <strong>Business Use %:</strong> ${businessPercent}%
+            <p style="margin: 0; color: #2d3748;">
+              <strong>Vehículo:</strong> ${submission.vehicle_registration}
             </p>
           </div>
 
-          <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #1a365d; margin-top: 0;">Running Costs Breakdown</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0;">Fuel:</td>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0; text-align: right;">€${fuelCost.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0;">Insurance:</td>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0; text-align: right;">€${insuranceCost.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0;">Motor Tax:</td>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0; text-align: right;">€${motorTaxCost.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0;">Repairs & Maintenance:</td>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0; text-align: right;">€${repairsCost.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0;">NCT Testing:</td>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0; text-align: right;">€${nctCost.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0;">Other Costs:</td>
-                <td style="padding: 8px; border-bottom: 1px solid #cbd5e0; text-align: right;">€${otherCost.toFixed(2)}</td>
-              </tr>
-              <tr style="font-weight: bold; background-color: #e2e8f0;">
-                <td style="padding: 12px;">Total Running Costs:</td>
-                <td style="padding: 12px; text-align: right;">€${totalRunningCosts.toFixed(2)}</td>
-              </tr>
-              <tr style="font-weight: bold; color: #1a365d;">
-                <td style="padding: 12px;">Deductible Amount (${businessPercent}%):</td>
-                <td style="padding: 12px; text-align: right; font-size: 18px;">€${deductibleRunningCosts.toFixed(2)}</td>
-              </tr>
-            </table>
-          </div>
+          <p style="font-size: 14px; color: #718096; margin-top: 30px;">
+            Si tiene alguna pregunta, no dude en contactarnos.
+          </p>
 
-          <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #1a365d; margin-top: 0;">Capital Allowances</h3>
-            <p style="margin: 10px 0;">
-              <strong>Vehicle Cost:</strong> €${Number(summary.car_cost_eur || 0).toFixed(2)}
-            </p>
-            <p style="margin: 10px 0;">
-              <strong>CO₂ Band:</strong> ${summary.co2_band || 'Not specified'}
-            </p>
-            <p style="font-size: 12px; color: #718096; margin-top: 15px;">
-              Note: Capital allowances calculation depends on CO₂ emissions and should be verified according to current Revenue guidelines.
-            </p>
-          </div>
+          <p style="font-size: 14px; margin-top: 30px;">
+            Saludos cordiales,<br>
+            <strong>Nexus Ventures Team</strong>
+          </p>
 
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; color: #718096; font-size: 12px;">
-            <p>This summary is automatically generated from the Business Mileage Logbook system.</p>
-            <p>Generated on: ${new Date().toLocaleString('en-IE', { timeZone: 'Europe/Dublin' })}</p>
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <a href="https://www.nexusventures.eu" style="color: #1a365d; text-decoration: none;">
+              www.nexusventures.eu
+            </a>
           </div>
         </div>
       `,
+      attachments: [
+        {
+          filename: `mi-logbook-${new Date().toISOString().split('T')[0]}.pdf`,
+          content: submission.pdfData,
+        },
+      ],
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("User email sent:", userEmail);
 
-    return new Response(JSON.stringify({ success: true, emailId: emailResponse.data?.id }), {
+    return new Response(JSON.stringify({ success: true, adminEmailId: adminEmail.data?.id, userEmailId: userEmail.data?.id }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
