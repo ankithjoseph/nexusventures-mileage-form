@@ -70,6 +70,17 @@ const handler = async (req: Request): Promise<Response> => {
       ] : [],
     });
 
+    if (adminEmail.error) {
+      console.error("Admin email send failed:", adminEmail.error);
+      return new Response(
+        JSON.stringify({ success: false, stage: "admin", error: adminEmail.error }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     console.log("Admin email sent:", adminEmail);
 
     // Email de confirmación al usuario
@@ -121,6 +132,17 @@ const handler = async (req: Request): Promise<Response> => {
         },
       ] : [],
     });
+
+    if (userEmail.error) {
+      console.error("User email send failed:", userEmail.error);
+      return new Response(
+        JSON.stringify({ success: false, stage: "user", error: userEmail.error }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
     console.log("User email sent:", userEmail);
 
