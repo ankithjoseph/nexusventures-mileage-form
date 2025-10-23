@@ -29,7 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Email al administrador (jesus@irishtaxagents.com)
     const adminEmail = await resend.emails.send({
-      from: "Nexus Ventures Logbook <onboarding@resend.dev>",
+      from: "Nexus Ventures Logbook <log@happydreamsireland.com>",
       to: "jesus@irishtaxagents.com",
       subject: `Nuevo Registro de Mileage - ${submission.driver_name}`,
       html: `
@@ -85,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Email de confirmación al usuario
     const userEmail = await resend.emails.send({
-      from: "Nexus Ventures <onboarding@resend.dev>",
+      from: "Nexus Ventures <log@happydreamsireland.com>",
       to: submission.driver_email,
       subject: "Confirmación de Registro - Business Mileage Logbook",
       html: `
