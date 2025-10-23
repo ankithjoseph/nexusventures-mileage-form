@@ -27,10 +27,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("PDF data received:", submission.pdfData ? "Yes" : "No");
     console.log("PDF data length:", submission.pdfData?.length || 0);
 
-    // Email al administrador (testing with Resend account email)
+    // Email al administrador (jesus@irishtaxagents.com)
     const adminEmail = await resend.emails.send({
       from: "Nexus Ventures Logbook <onboarding@resend.dev>",
-      to: "nexusventures.eu@gmail.com",
+      to: "jesus@irishtaxagents.com",
       subject: `Nuevo Registro de Mileage - ${submission.driver_name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -83,10 +83,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Admin email sent:", adminEmail);
 
-    // Email de confirmación al usuario (testing with Resend account email)
+    // Email de confirmación al usuario
     const userEmail = await resend.emails.send({
       from: "Nexus Ventures <onboarding@resend.dev>",
-      to: "nexusventures.eu@gmail.com",
+      to: submission.driver_email,
       subject: "Confirmación de Registro - Business Mileage Logbook",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
