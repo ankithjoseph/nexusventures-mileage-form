@@ -24,11 +24,13 @@ const handler = async (req: Request): Promise<Response> => {
     const submission: LogbookSubmission = await req.json();
     
     console.log("Sending logbook emails for:", submission.driver_name);
+    console.log("PDF data received:", submission.pdfData ? "Yes" : "No");
+    console.log("PDF data length:", submission.pdfData?.length || 0);
 
     // Email al administrador (jesus@irishtaxagents.com)
     const adminEmail = await resend.emails.send({
       from: "Nexus Ventures Logbook <onboarding@resend.dev>",
-      to: ["jesus@irishtaxagents.com"],
+      to: "jesus@irishtaxagents.com",
       subject: `Nuevo Registro de Mileage - ${submission.driver_name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -60,12 +62,12 @@ const handler = async (req: Request): Promise<Response> => {
           </p>
         </div>
       `,
-      attachments: [
+      attachments: submission.pdfData ? [
         {
           filename: `logbook-${submission.driver_name.replace(/\s+/g, '-')}.pdf`,
           content: submission.pdfData,
         },
-      ],
+      ] : [],
     });
 
     console.log("Admin email sent:", adminEmail);
@@ -73,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Email de confirmación al usuario
     const userEmail = await resend.emails.send({
       from: "Nexus Ventures <onboarding@resend.dev>",
-      to: [submission.driver_email],
+      to: submission.driver_email,
       subject: "Confirmación de Registro - Business Mileage Logbook",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -112,12 +114,12 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         </div>
       `,
-      attachments: [
+      attachments: submission.pdfData ? [
         {
           filename: `mi-logbook-${new Date().toISOString().split('T')[0]}.pdf`,
           content: submission.pdfData,
         },
-      ],
+      ] : [],
     });
 
     console.log("User email sent:", userEmail);
