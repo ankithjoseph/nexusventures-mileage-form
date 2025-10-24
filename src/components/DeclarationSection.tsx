@@ -2,16 +2,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Download } from "lucide-react";
 
 interface DeclarationSectionProps {
   data: any;
   onChange: (field: string, value: string) => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
+  onDownload?: () => void;
 }
 
-export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = false }: DeclarationSectionProps) => {
+export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = false, onDownload }: DeclarationSectionProps) => {
   return (
     <Card className="p-6 bg-muted/30">
       <h2 className="text-lg font-semibold mb-4 text-primary">Declaration & Signature</h2>
@@ -49,7 +50,14 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-end items-center gap-3">
+        {onDownload && (
+          <Button onClick={onDownload} variant="outline" size="lg">
+            <Download className="w-4 h-4 mr-2" />
+            Download PDF
+          </Button>
+        )}
+
         <Button 
           onClick={onSubmit} 
           disabled={isSubmitting}

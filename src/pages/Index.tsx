@@ -6,7 +6,7 @@ import { TotalsSection } from "@/components/TotalsSection";
 import { RunningCostsSection } from "@/components/RunningCostsSection";
 import { CapitalAllowancesSection } from "@/components/CapitalAllowancesSection";
 import { DeclarationSection } from "@/components/DeclarationSection";
-import { LogbookData, TripRow, createEmptyLogbook } from "@/types/logbook";
+import { LogbookData, TripRow, createEmptyLogbook, createEmptyTrip } from "@/types/logbook";
 import { generatePDF } from "@/utils/pdfGenerator";
 import { Download, Save, Upload, FileText, Linkedin, Globe, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -124,6 +124,17 @@ const Index = () => {
     }
   };
 
+  const handleDownloadPdf = () => {
+    try {
+      const doc = generatePDF(formData, false);
+      const date = new Date().toISOString().split('T')[0];
+      doc.save(`mileage-logbook-${date}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF for download', error);
+      toast.error('Error generating PDF');
+    }
+  };
+
 
   const handleSaveData = () => {
     try {
@@ -202,7 +213,19 @@ const Index = () => {
           
           <TripsTable 
             trips={formData.trips} 
-            onChange={handleTripChange} 
+            onChange={handleTripChange}
+            onAddRow={() => {
+              setFormData(prev => ({
+                ...prev,
+                trips: [...prev.trips, createEmptyTrip()]
+              }));
+            }}
+            onRemoveRow={(rowIndex: number) => {
+              setFormData(prev => ({
+                ...prev,
+                trips: prev.trips.filter((_, i) => i !== rowIndex)
+              }));
+            }}
           />
           
           <TotalsSection 
@@ -225,6 +248,7 @@ const Index = () => {
             data={formData} 
             onChange={handleFieldChange}
             onSubmit={handleSubmitForm}
+            onDownload={handleDownloadPdf}
             isSubmitting={isSubmitting}
           />
         </div>

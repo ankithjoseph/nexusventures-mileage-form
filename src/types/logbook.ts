@@ -71,7 +71,7 @@ export const createEmptyLogbook = (): LogbookData => ({
   co2_g_km: '',
   engine_size: '',
   fuel_type: 'petrol',
-  trips: Array(20).fill(null).map(() => createEmptyTrip()),
+  trips: Array(5).fill(null).map(() => createEmptyTrip()),
   total_km_all: '',
   total_km_business: '',
   business_percent: '',
