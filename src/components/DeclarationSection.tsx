@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Send, Download } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface DeclarationSectionProps {
   data: any;
@@ -13,33 +14,35 @@ interface DeclarationSectionProps {
 }
 
 export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = false, onDownload }: DeclarationSectionProps) => {
+  const { t } = useLanguage();
+
   return (
     <Card className="p-6 bg-muted/30">
-      <h2 className="text-lg font-semibold mb-4 text-primary">Declaration & Signature</h2>
+      <h2 className="text-lg font-semibold mb-4 text-primary">{t('declaration.title')}</h2>
       
       <div className="mb-6 p-4 bg-card rounded-md border">
         <p className="text-sm text-foreground leading-relaxed">
-          I confirm the above journeys were necessarily incurred in the performance of my duties (excludes commuting).
+          {t('mileage.declaration')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="signature" className="text-sm font-medium">
-            Signature (Type Name)
+            {t('form.signature')} (Type Name)
           </Label>
           <Input
             id="signature"
             value={data.signature}
             onChange={(e) => onChange('signature', e.target.value)}
-            placeholder="John Doe"
+            placeholder={t('placeholders.name')}
             className="font-serif italic"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="signed_date" className="text-sm font-medium">
-            Date
+            {t('form.date')}
           </Label>
           <Input
             id="signed_date"
@@ -54,7 +57,7 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
         {onDownload && (
           <Button onClick={onDownload} variant="outline" size="lg">
             <Download className="w-4 h-4 mr-2" />
-            Download PDF
+            {t('form.download')}
           </Button>
         )}
 
@@ -65,7 +68,7 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
           className="min-w-[200px]"
         >
           <Send className="w-4 h-4 mr-2" />
-          {isSubmitting ? "Enviando..." : "Enviar Registro"}
+          {isSubmitting ? t('form.sending') : t('form.submit')}
         </Button>
       </div>
     </Card>

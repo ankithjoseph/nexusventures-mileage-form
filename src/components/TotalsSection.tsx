@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TotalsSectionProps {
   data: any;
@@ -11,6 +12,7 @@ interface TotalsSectionProps {
 }
 
 export const TotalsSection = ({ data, trips, onChange }: TotalsSectionProps) => {
+  const { t } = useLanguage();
   const calculateTotals = () => {
     let totalBusiness = 0;
     trips.forEach(trip => {
@@ -28,7 +30,7 @@ export const TotalsSection = ({ data, trips, onChange }: TotalsSectionProps) => 
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-primary">Annual Totals</h2>
+        <h2 className="text-lg font-semibold text-primary">{t('totals.title')}</h2>
         <Button onClick={calculateTotals} variant="outline" size="sm">
           <Calculator className="w-4 h-4 mr-2" />
           Calculate
@@ -37,7 +39,7 @@ export const TotalsSection = ({ data, trips, onChange }: TotalsSectionProps) => 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="total_km_all" className="text-sm font-medium">
-            Total km (All) <span className="text-destructive">*</span>
+            {t('totals.totalKmAll')} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="total_km_all"
@@ -50,7 +52,7 @@ export const TotalsSection = ({ data, trips, onChange }: TotalsSectionProps) => 
 
         <div className="space-y-2">
           <Label htmlFor="total_km_business" className="text-sm font-medium">
-            Total km (Business) <span className="text-destructive">*</span>
+            {t('totals.totalKmBusiness')} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="total_km_business"
@@ -65,7 +67,7 @@ export const TotalsSection = ({ data, trips, onChange }: TotalsSectionProps) => 
 
         <div className="space-y-2">
           <Label htmlFor="business_percent" className="text-sm font-medium">
-            Business % <span className="text-destructive">*</span>
+            {t('totals.businessPercent')} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="business_percent"

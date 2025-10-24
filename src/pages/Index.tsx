@@ -12,10 +12,13 @@ import { Download, Save, Upload, FileText, Linkedin, Globe, Send } from "lucide-
 import { toast } from "sonner";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { Header } from "@/components/Header";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const [formData, setFormData] = useState<LogbookData>(createEmptyLogbook());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useLanguage();
 
   const handleFieldChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -44,7 +47,7 @@ const Index = () => {
 
       // Validar campos requeridos básicos
       if (!formData.driver_name || !formData.driver_email) {
-        toast.error("Por favor complete el nombre del conductor y el email");
+        toast.error(t('form.required'));
         setIsSubmitting(false);
         return;
       }
@@ -52,7 +55,7 @@ const Index = () => {
       // Validar email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.driver_email)) {
-        toast.error("Por favor ingrese un email válido");
+        toast.error(t('form.email.invalid'));
         setIsSubmitting(false);
         return;
       }
@@ -63,21 +66,21 @@ const Index = () => {
       );
 
       if (!hasValidTrip) {
-        toast.error("Por favor complete al menos un viaje con fecha, origen, destino y kilómetros");
+        toast.error(t('mileage.validation.trip'));
         setIsSubmitting(false);
         return;
       }
 
       // Validar registro del vehículo
       if (!formData.vehicle_registration || formData.vehicle_registration.trim() === '') {
-        toast.error("Por favor ingrese el registro del vehículo");
+        toast.error(t('mileage.validation.vehicle'));
         setIsSubmitting(false);
         return;
       }
 
       // Validar firma y fecha
       if (!formData.signature || !formData.signed_date) {
-        toast.error("Por favor complete la firma y fecha en la sección de Declaration");
+        toast.error(t('mileage.declaration.signature'));
         setIsSubmitting(false);
         return;
       }
@@ -108,17 +111,17 @@ const Index = () => {
 
         if (error) throw error;
         
-        toast.success("Formulario enviado exitosamente. Revise su email.");
+        toast.success(t('form.success'));
         setIsSubmitting(false);
       };
       
       reader.onerror = () => {
-        toast.error("Error al procesar el PDF");
+        toast.error(t('form.pdf.error'));
         setIsSubmitting(false);
       };
       
     } catch (error) {
-      toast.error("Error al enviar el formulario");
+      toast.error(t('form.error'));
       console.error(error);
       setIsSubmitting(false);
     }
@@ -146,9 +149,9 @@ const Index = () => {
       link.download = `mileage-logbook-data-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success("Data saved successfully!");
+      toast.success(t('form.data.saved'));
     } catch (error) {
-      toast.error("Failed to save data");
+      toast.error(t('form.data.save.error'));
       console.error(error);
     }
   };
@@ -165,9 +168,9 @@ const Index = () => {
           try {
             const loadedData = JSON.parse(event.target?.result as string);
             setFormData(loadedData);
-            toast.success("Data loaded successfully!");
+            toast.success(t('form.data.loaded'));
           } catch (error) {
-            toast.error("Failed to load data");
+            toast.error(t('form.data.load.error'));
             console.error(error);
           }
         };
@@ -179,29 +182,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img 
-                src={nexusLogo} 
-                alt="Nexus Ventures Logo" 
-                className="h-12 w-auto object-contain"
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-                  <FileText className="w-6 h-6" />
-                  Business Mileage Logbook
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Ireland – Employee/Director, Tax Year 2024
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-7xl">

@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TripRow as TripRowType } from "@/types/logbook";
 import { useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TripRowProps {
   rowNumber: number;
@@ -11,6 +12,7 @@ interface TripRowProps {
 }
 
 export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps) => {
+  const { t } = useLanguage();
   // Auto-calculate business_km when odo values change
   useEffect(() => {
     const start = parseFloat(data.odo_start as string) || 0;
@@ -38,7 +40,7 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
         <Input
           value={data.from}
           onChange={(e) => onChange(rowNumber, 'from', e.target.value)}
-          placeholder="Location"
+          placeholder={t('placeholders.location')}
           className="text-sm w-full"
         />
       </td>
@@ -46,7 +48,7 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
         <Input
           value={data.to}
           onChange={(e) => onChange(rowNumber, 'to', e.target.value)}
-          placeholder="Location"
+          placeholder={t('placeholders.location')}
           className="text-sm w-full"
         />
       </td>
@@ -103,7 +105,7 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
         <Input
           value={data.notes}
           onChange={(e) => onChange(rowNumber, 'notes', e.target.value)}
-          placeholder="Notes"
+          placeholder={t('placeholders.notes')}
           className="text-sm w-full"
         />
       </td>
@@ -115,7 +117,7 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
             className="text-sm text-red-600 hover:text-red-800 px-2 py-1 rounded"
             aria-label={`Remove row ${rowNumber + 1}`}
           >
-            Remove
+            {t('trips.remove')}
           </button>
         )}
       </td>

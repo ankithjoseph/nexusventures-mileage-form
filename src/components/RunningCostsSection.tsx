@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface RunningCostsSectionProps {
   data: any;
@@ -8,13 +9,14 @@ interface RunningCostsSectionProps {
 }
 
 export const RunningCostsSection = ({ data, onChange }: RunningCostsSectionProps) => {
+  const { t } = useLanguage();
   return (
     <Card className="p-6">
-      <h2 className="text-lg font-semibold mb-4 text-primary">Running Costs (Annual Totals)</h2>
+      <h2 className="text-lg font-semibold mb-4 text-primary">{t('runningCosts.title')}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="fuel_eur" className="text-sm font-medium">
-            Fuel (€)
+            {t('runningCosts.fuel')}
           </Label>
           <Input
             id="fuel_eur"
@@ -28,7 +30,7 @@ export const RunningCostsSection = ({ data, onChange }: RunningCostsSectionProps
 
         <div className="space-y-2">
           <Label htmlFor="insurance_eur" className="text-sm font-medium">
-            Insurance (€)
+            {t('runningCosts.insurance')}
           </Label>
           <Input
             id="insurance_eur"
@@ -42,7 +44,7 @@ export const RunningCostsSection = ({ data, onChange }: RunningCostsSectionProps
 
         <div className="space-y-2">
           <Label htmlFor="motor_tax_eur" className="text-sm font-medium">
-            Motor Tax (€)
+            {t('runningCosts.motorTax')}
           </Label>
           <Input
             id="motor_tax_eur"
@@ -56,7 +58,7 @@ export const RunningCostsSection = ({ data, onChange }: RunningCostsSectionProps
 
         <div className="space-y-2">
           <Label htmlFor="repairs_maintenance_eur" className="text-sm font-medium">
-            Repairs & Maintenance (€)
+            {t('runningCosts.repairsMaintenance')}
           </Label>
           <Input
             id="repairs_maintenance_eur"
@@ -70,7 +72,7 @@ export const RunningCostsSection = ({ data, onChange }: RunningCostsSectionProps
 
         <div className="space-y-2">
           <Label htmlFor="nct_testing_eur" className="text-sm font-medium">
-            NCT Testing (€)
+            {t('runningCosts.nctTesting')}
           </Label>
           <Input
             id="nct_testing_eur"
@@ -84,19 +86,19 @@ export const RunningCostsSection = ({ data, onChange }: RunningCostsSectionProps
 
         <div className="space-y-2">
           <Label htmlFor="other_desc" className="text-sm font-medium">
-            Other Description
+            {t('runningCosts.otherDescription')}
           </Label>
           <Input
             id="other_desc"
             value={data.other_desc}
             onChange={(e) => onChange('other_desc', e.target.value)}
-            placeholder="Description"
+            placeholder={t('placeholders.description')}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="other_eur" className="text-sm font-medium">
-            Other Amount (€)
+            {t('runningCosts.otherAmount')}
           </Label>
           <Input
             id="other_eur"
