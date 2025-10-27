@@ -14,6 +14,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// Extend jsPDF type to include autoTable properties
+interface jsPDFWithAutoTable extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+}
+
 interface ExpenseReportData {
   name: string;
   email: string;
@@ -104,12 +111,12 @@ const ExpenseReport = () => {
       }
 
       // Generate PDF
-      const doc = new jsPDF();
+      const doc: jsPDFWithAutoTable = new jsPDF();
       const marginLeft = 15;
       const marginRight = 15;
       const pageWidth = 210; // A4 width in mm
       const contentWidth = pageWidth - marginLeft - marginRight;
-      
+
       let yPos = 15;
 
       // Add logo
@@ -124,30 +131,30 @@ const ExpenseReport = () => {
       // Title
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.title'), marginLeft, yPos + 5);
+      doc.text(t('app.title.expense'), marginLeft, yPos + 5);
       yPos += 11;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text('Ireland – Employee/Director, Tax Year 2024', marginLeft, yPos);
+      doc.text(t('app.subtitle'), marginLeft, yPos);
       yPos += 12;
 
       // Personal Information
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.personalInfo'), marginLeft, yPos);
+      doc.text(t('expense.personal.info'), marginLeft, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      
+
       const personalData = [
-        ['Name:', formData.name, 'PPS:', formData.pps],
+        [t('form.name') + ':', formData.name, t('form.pps') + ':', formData.pps],
         ['Email:', formData.email, '', ''],
-        ['Motivo del viaje:', formData.motivo_viaje, '', ''],
-        ['Fecha del viaje:', formData.fecha_viaje, 'Origen:', formData.origen],
-        ['Destino:', formData.destino, '', '']
+        [t('expense.reason') + ':', formData.motivo_viaje, '', ''],
+        [t('expense.trip.date') + ':', formData.fecha_viaje, t('expense.origin') + ':', formData.origen],
+        [t('expense.destination') + ':', formData.destino, '', '']
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -159,22 +166,26 @@ const ExpenseReport = () => {
           1: { cellWidth: 50 },
           2: { fontStyle: 'bold', cellWidth: 35 },
           3: { cellWidth: 55 }
-        }
+        },
+        tableWidth: contentWidth
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+      // Add space before next section
+      yPos += 15;
 
       // Vehicle Information
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.vehicleInfo'), marginLeft, yPos);
+      doc.text(t('expense.vehicle.info'), marginLeft, yPos);
       yPos += 8;
-      
+
       const vehicleData = [
-        [t('expense.pdf.license'), formData.matricula, t('expense.pdf.makeModel'), formData.marca_modelo],
-        [t('expense.pdf.fuelType'), formData.tipo_combustible, t('expense.pdf.co2'), formData.co2_g_km]
+        [t('expense.license'), formData.matricula, t('expense.make.model'), formData.marca_modelo],
+        [t('expense.fuel.type'), formData.tipo_combustible, (t ? t('expense.co2').replace(/\u2082/g, '2') : 'CO2 (g/km)'), formData.co2_g_km]
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -184,24 +195,25 @@ const ExpenseReport = () => {
         columnStyles: {
           0: { fontStyle: 'bold', cellWidth: 40 },
           1: { cellWidth: 50 },
-          2: { fontStyle: 'bold', cellWidth: 35 },
+          2: { fontStyle: 'bold', cellWidth: 35, font: "Notosans" },
           3: { cellWidth: 55 }
-        }
+        },
+        tableWidth: contentWidth
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
 
       // Mileage
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.mileageReading'), marginLeft, yPos);
+      doc.text(t('expense.mileage.reading'), marginLeft, yPos);
       yPos += 8;
-      
+
       const mileageData = [
-        [t('expense.pdf.startKm'), formData.km_inicio + ' km', t('expense.pdf.endKm'), formData.km_final + ' km'],
-        [t('expense.pdf.businessKm'), formData.suma_km_trabajo + ' km', '', '']
+        [t('expense.start.km'), formData.km_inicio + ' km', t('expense.end.km'), formData.km_final + ' km'],
+        [t('expense.business.km'), formData.suma_km_trabajo + ' km', '', '']
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -209,27 +221,28 @@ const ExpenseReport = () => {
         theme: 'plain',
         styles: { fontSize: 9, cellPadding: 2 },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 70 },
+          0: { fontStyle: 'bold', cellWidth: 60 },
           1: { cellWidth: 40 },
-          2: { fontStyle: 'bold', cellWidth: 50 },
-          3: { cellWidth: 40 }
-        }
+          2: { fontStyle: 'bold', cellWidth: 45 },
+          3: { cellWidth: 35 }
+        },
+        tableWidth: contentWidth
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
 
       // Expenses
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.expenses'), marginLeft, yPos);
+      doc.text(t('expense.expenses'), marginLeft, yPos);
       yPos += 8;
-      
+
       const expensesData = [
-        [t('expense.pdf.tolls'), '€' + (formData.peajes || '0.00'), t('expense.pdf.parking'), '€' + (formData.parking || '0.00')],
-        [t('expense.pdf.fuelCost'), '€' + (formData.combustible || '0.00'), t('expense.pdf.mealsCost'), '€' + (formData.dietas || '0.00')],
-        [t('expense.pdf.accommodation'), '€' + (formData.alojamiento || '0.00'), '', '']
+        [t('expense.tolls'), '€' + (formData.peajes || '0.00'), t('expense.parking'), '€' + (formData.parking || '0.00')],
+        [t('expense.fuel'), '€' + (formData.combustible || '0.00'), t('expense.meals'), '€' + (formData.dietas || '0.00')],
+        [t('expense.accommodation'), '€' + (formData.alojamiento || '0.00'), '', '']
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -243,16 +256,16 @@ const ExpenseReport = () => {
           3: { cellWidth: 45 }
         }
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
 
       // Notes
       if (formData.notas) {
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text(t('expense.pdf.notes'), marginLeft, yPos);
+        doc.text(t('form.notes'), marginLeft, yPos);
         yPos += 8;
-        
+
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         const splitNotes = doc.splitTextToSize(formData.notas, contentWidth);
@@ -263,12 +276,12 @@ const ExpenseReport = () => {
       // Declaration
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.declaration'), marginLeft, yPos);
+      doc.text(t('declaration.title'), marginLeft, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      const declarationText = t('expense.pdf.declarationText');
+      const declarationText = t('expense.declaration');
       const splitDeclaration = doc.splitTextToSize(declarationText, contentWidth);
       doc.text(splitDeclaration, marginLeft, yPos);
       yPos += splitDeclaration.length * 5 + 10;
@@ -276,14 +289,14 @@ const ExpenseReport = () => {
       // Signature
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.signature'), marginLeft, yPos);
+      doc.text(t('form.signature'), marginLeft, yPos);
       yPos += 8;
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
         body: [
-          [t('expense.pdf.signatureLabel'), formData.firma, t('expense.pdf.dateLabel'), formData.fecha_firma]
+          [t('form.signature'), formData.firma, t('form.date'), formData.fecha_firma]
         ],
         theme: 'plain',
         styles: { fontSize: 9, cellPadding: 2 },
@@ -292,18 +305,31 @@ const ExpenseReport = () => {
           1: { cellWidth: 70, fontStyle: 'italic' },
           2: { fontStyle: 'bold', cellWidth: 20 },
           3: { cellWidth: 50 }
-        }
+        },
+        tableWidth: contentWidth
       });
 
+      // Add page numbers
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const pageNumber = `${i}/${totalPages}`;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.text(pageNumber, pageWidth - 20, pageHeight - 10);
+      }
+
       const pdfBlob = doc.output('blob');
-      
+
       // Convert PDF to base64
       const reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
-      
+
       reader.onloadend = async () => {
         const base64PDF = reader.result?.toString().split(',')[1];
-        
+
         // Prepare data to send
         const emailData = {
           name: formData.name,
@@ -318,16 +344,16 @@ const ExpenseReport = () => {
         });
 
         if (error) throw error;
-        
+
         toast.success(t('form.success'));
         setIsSubmitting(false);
       };
-      
+
       reader.onerror = () => {
         toast.error(t('form.pdf.error'));
         setIsSubmitting(false);
       };
-      
+
     } catch (error) {
       toast.error(t('form.error'));
       console.error(error);
@@ -337,12 +363,12 @@ const ExpenseReport = () => {
 
   const handleDownloadPdf = () => {
     try {
-      const doc = new jsPDF();
+      const doc: jsPDFWithAutoTable = new jsPDF();
       const marginLeft = 15;
       const marginRight = 15;
       const pageWidth = 210; // A4 width in mm
       const contentWidth = pageWidth - marginLeft - marginRight;
-      
+
       let yPos = 15;
 
       // Add logo
@@ -357,29 +383,29 @@ const ExpenseReport = () => {
       // Title
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.title'), marginLeft, yPos + 5);
+      doc.text(t('app.title.expense'), marginLeft, yPos + 5);
       yPos += 11;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text('Ireland – Employee/Director, Tax Year 2024', marginLeft, yPos);
+      doc.text(t('app.subtitle'), marginLeft, yPos);
       yPos += 12;
 
       // Personal Information
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.personalInfo'), marginLeft, yPos);
+      doc.text(t('expense.personal.info'), marginLeft, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      
+
       const personalData = [
-        ['Name:', formData.name, 'PPS:', formData.pps],
-        ['Motivo del viaje:', formData.motivo_viaje, '', ''],
-        ['Fecha del viaje:', formData.fecha_viaje, 'Origen:', formData.origen],
-        ['Destino:', formData.destino, '', '']
+        [t('form.name') + ':', formData.name, t('form.pps') + ':', formData.pps],
+        [t('expense.reason') + ':', formData.motivo_viaje, '', ''],
+        [t('expense.trip.date') + ':', formData.fecha_viaje, t('expense.origin') + ':', formData.origen],
+        [t('expense.destination') + ':', formData.destino, '', '']
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -393,20 +419,23 @@ const ExpenseReport = () => {
           3: { cellWidth: 55 }
         }
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+      // Add space before next section
+      yPos += 15;
 
       // Vehicle Information
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.vehicleInfo'), marginLeft, yPos);
+      doc.text(t('expense.vehicle.info'), marginLeft, yPos);
       yPos += 8;
-      
+
       const vehicleData = [
-        [t('expense.pdf.license'), formData.matricula, t('expense.pdf.makeModel'), formData.marca_modelo],
-        [t('expense.pdf.fuelType'), formData.tipo_combustible, t('expense.pdf.co2'), formData.co2_g_km]
+        [t('expense.license'), formData.matricula, t('expense.make.model'), formData.marca_modelo],
+        [t('expense.fuel.type'), formData.tipo_combustible, (t ? t('expense.co2').replace(/\u2082/g, '2') : 'CO2 (g/km)'), formData.co2_g_km]
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -418,22 +447,26 @@ const ExpenseReport = () => {
           1: { cellWidth: 50 },
           2: { fontStyle: 'bold', cellWidth: 35 },
           3: { cellWidth: 55 }
-        }
+        },
+        tableWidth: contentWidth
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+      // Add space before next section
+      yPos += 15;
 
       // Mileage
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.mileageReading'), marginLeft, yPos);
+      doc.text(t('expense.mileage.reading'), marginLeft, yPos);
       yPos += 8;
-      
+
       const mileageData = [
-        [t('expense.pdf.startKm'), formData.km_inicio + ' km', t('expense.pdf.endKm'), formData.km_final + ' km'],
-        [t('expense.pdf.businessKm'), formData.suma_km_trabajo + ' km', '', '']
+        [t('expense.start.km'), formData.km_inicio + ' km', t('expense.end.km'), formData.km_final + ' km'],
+        [t('expense.business.km'), formData.suma_km_trabajo + ' km', '', '']
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -441,27 +474,31 @@ const ExpenseReport = () => {
         theme: 'plain',
         styles: { fontSize: 9, cellPadding: 2 },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 70 },
+          0: { fontStyle: 'bold', cellWidth: 60 },
           1: { cellWidth: 40 },
-          2: { fontStyle: 'bold', cellWidth: 50 },
-          3: { cellWidth: 40 }
-        }
+          2: { fontStyle: 'bold', cellWidth: 45 },
+          3: { cellWidth: 35 }
+        },
+        tableWidth: contentWidth
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+      // Add space before next section
+      yPos += 15;
 
       // Expenses
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.expenses'), marginLeft, yPos);
+      doc.text(t('expense.expenses'), marginLeft, yPos);
       yPos += 8;
-      
+
       const expensesData = [
-        [t('expense.pdf.tolls'), '€' + (formData.peajes || '0.00'), t('expense.pdf.parking'), '€' + (formData.parking || '0.00')],
-        [t('expense.pdf.fuelCost'), '€' + (formData.combustible || '0.00'), t('expense.pdf.mealsCost'), '€' + (formData.dietas || '0.00')],
-        [t('expense.pdf.accommodation'), '€' + (formData.alojamiento || '0.00'), '', '']
+        [t('expense.tolls'), '€' + (formData.peajes || '0.00'), t('expense.parking'), '€' + (formData.parking || '0.00')],
+        [t('expense.fuel'), '€' + (formData.combustible || '0.00'), t('expense.meals'), '€' + (formData.dietas || '0.00')],
+        [t('expense.accommodation'), '€' + (formData.alojamiento || '0.00'), '', '']
       ];
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
@@ -473,18 +510,19 @@ const ExpenseReport = () => {
           1: { cellWidth: 45 },
           2: { fontStyle: 'bold', cellWidth: 35 },
           3: { cellWidth: 45 }
-        }
+        },
+        tableWidth: contentWidth
       });
-      
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
 
       // Notes
       if (formData.notas) {
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text(t('expense.pdf.notes'), marginLeft, yPos);
+        doc.text(t('form.notes'), marginLeft, yPos);
         yPos += 8;
-        
+
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         const splitNotes = doc.splitTextToSize(formData.notas, contentWidth);
@@ -492,15 +530,17 @@ const ExpenseReport = () => {
         yPos += splitNotes.length * 5 + 10;
       }
 
+      yPos += 15;
+
       // Declaration
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.declaration'), marginLeft, yPos);
+      doc.text(t('declaration.title'), marginLeft, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      const declarationText = t('expense.pdf.declarationText');
+      const declarationText = t('expense.declaration');
       const splitDeclaration = doc.splitTextToSize(declarationText, contentWidth);
       doc.text(splitDeclaration, marginLeft, yPos);
       yPos += splitDeclaration.length * 5 + 10;
@@ -508,14 +548,14 @@ const ExpenseReport = () => {
       // Signature
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(t('expense.pdf.signature'), marginLeft, yPos);
+      doc.text(t('form.signature'), marginLeft, yPos);
       yPos += 8;
-      
+
       autoTable(doc, {
         startY: yPos,
         head: [],
         body: [
-          [t('expense.pdf.signatureLabel'), formData.firma, t('expense.pdf.dateLabel'), formData.fecha_firma]
+          [t('form.signature'), formData.firma, t('form.date'), formData.fecha_firma]
         ],
         theme: 'plain',
         styles: { fontSize: 9, cellPadding: 2 },
@@ -524,8 +564,21 @@ const ExpenseReport = () => {
           1: { cellWidth: 70, fontStyle: 'italic' },
           2: { fontStyle: 'bold', cellWidth: 20 },
           3: { cellWidth: 50 }
-        }
+        },
+        tableWidth: contentWidth
       });
+
+      // Add page numbers
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const pageNumber = `${i}/${totalPages}`;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.text(pageNumber, pageWidth - 20, pageHeight - 10);
+      }
 
       const date = new Date().toISOString().split('T')[0];
       doc.save(`expense-report-${date}.pdf`);

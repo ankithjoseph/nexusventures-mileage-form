@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Send, Download } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { LogbookData } from "@/types/logbook";
 
 interface DeclarationSectionProps {
-  data: any;
+  data: Partial<LogbookData>;
   onChange: (field: string, value: string) => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
@@ -19,7 +20,7 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
   return (
     <Card className="p-6 bg-muted/30">
       <h2 className="text-lg font-semibold mb-4 text-primary">{t('declaration.title')}</h2>
-      
+
       <div className="mb-6 p-4 bg-card rounded-md border">
         <p className="text-sm text-foreground leading-relaxed">
           {t('mileage.declaration')}
@@ -61,8 +62,8 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
           </Button>
         )}
 
-        <Button 
-          onClick={onSubmit} 
+        <Button
+          onClick={onSubmit}
           disabled={isSubmitting}
           size="lg"
           className="min-w-[200px]"

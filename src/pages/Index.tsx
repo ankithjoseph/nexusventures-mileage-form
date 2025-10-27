@@ -61,7 +61,7 @@ const Index = () => {
       }
 
       // Validar que haya al menos un viaje con datos
-      const hasValidTrip = formData.trips.some(trip => 
+      const hasValidTrip = formData.trips.some(trip =>
         trip.date && trip.from && trip.to && trip.business_km
       );
 
@@ -86,16 +86,16 @@ const Index = () => {
       }
 
       // Generar PDF
-      const pdf = generatePDF(formData, false);
+      const pdf = generatePDF(formData, false, t);
       const pdfBlob = pdf.output('blob');
-      
+
       // Convertir PDF a base64
       const reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
-      
+
       reader.onloadend = async () => {
         const base64PDF = reader.result?.toString().split(',')[1];
-        
+
         // Preparar datos para enviar
         const emailData = {
           driver_name: formData.driver_name,
@@ -110,16 +110,16 @@ const Index = () => {
         });
 
         if (error) throw error;
-        
+
         toast.success(t('form.success'));
         setIsSubmitting(false);
       };
-      
+
       reader.onerror = () => {
         toast.error(t('form.pdf.error'));
         setIsSubmitting(false);
       };
-      
+
     } catch (error) {
       toast.error(t('form.error'));
       console.error(error);
@@ -129,7 +129,7 @@ const Index = () => {
 
   const handleDownloadPdf = () => {
     try {
-      const doc = generatePDF(formData, false);
+      const doc = generatePDF(formData, false, t);
       const date = new Date().toISOString().split('T')[0];
       doc.save(`mileage-logbook-${date}.pdf`);
     } catch (error) {
@@ -187,13 +187,13 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-6">
-          <DriverVehicleSection 
-            data={formData} 
-            onChange={handleFieldChange} 
+          <DriverVehicleSection
+            data={formData}
+            onChange={handleFieldChange}
           />
-          
-          <TripsTable 
-            trips={formData.trips} 
+
+          <TripsTable
+            trips={formData.trips}
             onChange={handleTripChange}
             onAddRow={() => {
               setFormData(prev => ({
@@ -208,25 +208,25 @@ const Index = () => {
               }));
             }}
           />
-          
-          <TotalsSection 
-            data={formData} 
+
+          <TotalsSection
+            data={formData}
             trips={formData.trips}
-            onChange={handleFieldChange} 
+            onChange={handleFieldChange}
           />
-          
-          <RunningCostsSection 
-            data={formData} 
-            onChange={handleFieldChange} 
+
+          <RunningCostsSection
+            data={formData}
+            onChange={handleFieldChange}
           />
-          
-          <CapitalAllowancesSection 
-            data={formData} 
-            onChange={handleFieldChange} 
+
+          <CapitalAllowancesSection
+            data={formData}
+            onChange={handleFieldChange}
           />
-          
-          <DeclarationSection 
-            data={formData} 
+
+          <DeclarationSection
+            data={formData}
             onChange={handleFieldChange}
             onSubmit={handleSubmitForm}
             onDownload={handleDownloadPdf}
@@ -240,9 +240,9 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <img 
-                src={nexusLogo} 
-                alt="Nexus Ventures" 
+              <img
+                src={nexusLogo}
+                alt="Nexus Ventures"
                 className="h-8 w-auto object-contain"
               />
             </div>
@@ -251,18 +251,18 @@ const Index = () => {
               <p className="mt-1">For tax compliance purposes. Keep records for at least 6 years.</p>
             </div>
             <div className="flex items-center gap-4">
-              <a 
-                href="https://www.nexusventures.eu" 
-                target="_blank" 
+              <a
+                href="https://www.nexusventures.eu"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary transition-colors"
               >
                 <Globe className="w-4 h-4" />
                 www.nexusventures.eu
               </a>
-              <a 
-                href="https://www.linkedin.com/company/nexusventures" 
-                target="_blank" 
+              <a
+                href="https://www.linkedin.com/company/nexusventures"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary transition-colors"
               >

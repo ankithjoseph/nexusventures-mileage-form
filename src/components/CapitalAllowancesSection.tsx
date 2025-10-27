@@ -2,9 +2,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { LogbookData } from "@/types/logbook";
 
 interface CapitalAllowancesSectionProps {
-  data: any;
+  data: Partial<LogbookData>;
   onChange: (field: string, value: string) => void;
 }
 

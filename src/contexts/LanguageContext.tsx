@@ -74,6 +74,19 @@ const translations = {
     'vehicle.seats': 'Number of Seats',
     'vehicle.purchase': 'Purchase Date',
     'vehicle.value': 'Original Value (€)',
+    'vehicle.makeModel': 'Make/Model',
+    'vehicle.purchaseDate': 'Purchase Date',
+    'vehicle.engineSize': 'Engine Size',
+    'vehicle.fuelType': 'Fuel Type',
+    'vehicle.selectFuelType': 'Select fuel type',
+    'vehicle.fuelTypes.petrol': 'Petrol',
+    'vehicle.fuelTypes.diesel': 'Diesel',
+    'vehicle.fuelTypes.hybrid': 'Hybrid',
+    'vehicle.fuelTypes.ev': 'Electric',
+    'vehicle.co2Tooltip.title': 'Where to find the CO₂?',
+    'vehicle.co2Tooltip.location1': 'On the vehicle registration certificate',
+    'vehicle.co2Tooltip.location2': 'On motorcheck.ie (free with registration)',
+    'vehicle.co2Tooltip.location3': 'In the vehicle manual',
 
     // Trip fields
     'trip.date': 'Date',
@@ -81,6 +94,14 @@ const translations = {
     'trip.to': 'To',
     'trip.business': 'Business Purpose',
     'trip.mileage': 'Mileage (km)',
+    'trip.odoStart': 'Odometer Start',
+    'trip.odoEnd': 'Odometer End',
+    'trip.businessKm': 'Business km',
+    'trip.tollsParking': 'Tolls/Parking €',
+    'trip.notes': 'Notes',
+    'trip.actions': 'Actions',
+    'trip.purpose.interWorkplace': 'Inter-workplace',
+    'trip.purpose.temporaryWorkplace': 'Temporary workplace',
 
     // Expense Report
     'expense.title': 'Expense Report for Business Travel',
@@ -137,38 +158,38 @@ const translations = {
     'expense.fuelTypes.hibrido': 'Hybrid',
     'expense.fuelTypes.ev': 'EV',
 
-    // Expense Report PDF Labels
-    'expense.pdf.vehicleInfo': 'Vehicle Information',
-    'expense.pdf.license': 'License Plate:',
-    'expense.pdf.makeModel': 'Make/Model:',
-    'expense.pdf.fuelType': 'Fuel Type:',
-    'expense.pdf.co2': 'CO₂ (g/km):',
-    'expense.pdf.fuel': 'Fuel:',
-    'expense.pdf.meals': 'Meals:',
-    'expense.pdf.mileageReading': 'Mileage Reading',
-    'expense.pdf.expenses': 'Expenses',
-    'expense.pdf.tolls': 'Tolls:',
-    'expense.pdf.parking': 'Parking:',
-    'expense.pdf.fuelCost': 'Fuel:',
-    'expense.pdf.mealsCost': 'Meals:',
-    'expense.pdf.accommodation': 'Accommodation:',
-    'expense.pdf.startKm': 'Start km:',
-    'expense.pdf.endKm': 'End km:',
-    'expense.pdf.businessKm': 'Business km:',
-    'expense.pdf.title': 'Business Expense Report',
-    'expense.pdf.personalInfo': 'Personal Information',
-    'expense.pdf.notes': 'Notes',
-    'expense.pdf.declaration': 'Declaration',
-    'expense.pdf.declarationText': 'I confirm that the above expenses were necessarily incurred in the performance of my duties for business travel purposes. All information provided is true and accurate to the best of my knowledge.',
-    'expense.pdf.signature': 'Signature',
-    'expense.pdf.signatureLabel': 'Signature:',
-    'expense.pdf.dateLabel': 'Date:',
+    // Section titles
+    'declaration.title': 'Declaration & Signature',
+    'trips.title': 'Business Trips',
+    'trips.rows': 'rows',
+    'trips.addRow': 'Add row',
+    'trips.remove': 'Remove',
+    'totals.title': 'Annual Totals',
+    'totals.totalKmAll': 'Total km (All)',
+    'totals.totalKmBusiness': 'Total km (Business)',
+    'totals.businessPercent': 'Business Percentage',
+
+    // Running Costs
+    'runningCosts.title': 'Running Costs (Annual Totals)',
+    'runningCosts.fuel': 'Fuel (€)',
+    'runningCosts.insurance': 'Insurance (€)',
+    'runningCosts.motorTax': 'Motor Tax (€)',
+    'runningCosts.repairsMaintenance': 'Repairs & Maintenance (€)',
+    'runningCosts.nctTesting': 'NCT Testing (€)',
+    'runningCosts.otherDescription': 'Other Description',
+    'runningCosts.otherAmount': 'Other Amount (€)',
+
+    // Capital Allowances
+    'capitalAllowances.title': 'Capital Allowances',
+    'capitalAllowances.carCost': 'Car Cost (€)',
+    'capitalAllowances.purchaseDate': 'Purchase Date',
+    'capitalAllowances.co2Band': 'CO₂ Band',
   },
   es: {
     // Header
     'app.title': 'Formularios Nexus Ventures',
     'app.title.mileage': 'Libro de Kilometraje Laboral',
-    'app.title.expense': 'Informe de Gastos Laborales',
+    'app.title.expense': 'Informe de Gastos por Viajes de Trabajo',
     'app.subtitle': 'Irlanda – Empleado/Director, Año Fiscal 2024',
     'nav.mileage': 'Libro de Kilometraje',
     'nav.expense': 'Informe de Gastos',
@@ -253,6 +274,8 @@ const translations = {
     'trip.tollsParking': 'Peajes/Estacionamiento €',
     'trip.notes': 'Notas',
     'trip.actions': 'Acciones',
+    'trip.purpose.interWorkplace': 'Entre lugares de trabajo',
+    'trip.purpose.temporaryWorkplace': 'Lugar de trabajo temporal',
 
     // Expense Report
     'expense.title': 'Informe de Gastos por Viajes de Trabajo',
@@ -331,41 +354,22 @@ const translations = {
     'expense.fuelTypes.diesel': 'Diésel',
     'expense.fuelTypes.hibrido': 'Híbrido',
     'expense.fuelTypes.ev': 'EV',
-
-    // Expense Report PDF Labels
-    'expense.pdf.vehicleInfo': 'Datos del Vehículo',
-    'expense.pdf.license': 'Matrícula:',
-    'expense.pdf.makeModel': 'Marca/Modelo:',
-    'expense.pdf.fuelType': 'Tipo de combustible:',
-    'expense.pdf.co2': 'CO₂ (g/km):',
-    'expense.pdf.fuel': 'Combustible:',
-    'expense.pdf.meals': 'Dietas:',
-    'expense.pdf.mileageReading': 'Lectura de Kilometraje',
-    'expense.pdf.expenses': 'Gastos',
-    'expense.pdf.tolls': 'Peajes:',
-    'expense.pdf.parking': 'Parking:',
-    'expense.pdf.fuelCost': 'Combustible:',
-    'expense.pdf.mealsCost': 'Dietas:',
-    'expense.pdf.accommodation': 'Alojamiento:',
-    'expense.pdf.startKm': 'Kilómetros inicio:',
-    'expense.pdf.endKm': 'Kilómetros final:',
-    'expense.pdf.businessKm': 'Suma de kms realizados por trabajo:',
-    'expense.pdf.title': 'Informe de Gastos por Viajes de Trabajo',
-    'expense.pdf.personalInfo': 'Información Personal',
-    'expense.pdf.notes': 'Notas',
-    'expense.pdf.declaration': 'Declaración',
-    'expense.pdf.declarationText': 'Confirmo que los gastos anteriores fueron necesariamente incurridos en el desempeño de mis funciones para fines de viajes de trabajo. Toda la información proporcionada es verdadera y precisa según mi leal saber y entender.',
-    'expense.pdf.signature': 'Firma',
-    'expense.pdf.signatureLabel': 'Firma:',
-    'expense.pdf.dateLabel': 'Fecha:',
   }
 };
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('es'); // Default to Spanish
+  const [language, setLanguage] = useState<Language>(() => {
+    // Try to get from localStorage, default to 'en'
+    const saved = localStorage.getItem('language');
+    return (saved === 'en' || saved === 'es') ? saved : 'en';
+  });
 
   const toggleLanguage = () => {
-    setLanguage(prev => prev === 'en' ? 'es' : 'en');
+    setLanguage(prev => {
+      const newLang = prev === 'en' ? 'es' : 'en';
+      localStorage.setItem('language', newLang);
+      return newLang;
+    });
   };
 
   const t = (key: string): string => {
