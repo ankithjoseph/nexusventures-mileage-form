@@ -22,6 +22,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log("Request method:", req.method);
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+    console.log("Request body length:", req.headers.get('content-length'));
+
     let submission: ExpenseReportSubmission;
     try {
       submission = await req.json();
