@@ -21,7 +21,19 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const submission: ExpenseReportSubmission = await req.json();
+    let submission: ExpenseReportSubmission;
+    try {
+      submission = await req.json();
+    } catch (jsonError) {
+      console.error("Invalid JSON in request body:", jsonError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
     console.log("Sending expense report emails for:", submission.name);
     console.log("PDF data received:", submission.pdfData ? "Yes" : "No");
