@@ -23,7 +23,7 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
         onChange(rowNumber, 'business_km', calculated.toString());
       }
     }
-  }, [data.odo_start, data.odo_end]);
+  }, [data.odo_start, data.odo_end, data.business_km, onChange, rowNumber]);
 
   return (
     <tr className="border-b hover:bg-muted/50 transition-colors">
@@ -58,8 +58,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="inter-workplace">Inter-workplace</SelectItem>
-            <SelectItem value="temporary workplace">Temporary workplace</SelectItem>
+            <SelectItem value="inter-workplace">{t('trip.purpose.interWorkplace')}</SelectItem>
+            <SelectItem value="temporary workplace">{t('trip.purpose.temporaryWorkplace')}</SelectItem>
           </SelectContent>
         </Select>
       </td>

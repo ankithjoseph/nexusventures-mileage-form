@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { LogbookData } from "@/types/logbook";
 
 interface TotalsSectionProps {
-  data: any;
-  trips: any[];
+  data: Partial<LogbookData>;
+  trips: LogbookData['trips'];
   onChange: (field: string, value: string) => void;
 }
 
@@ -19,10 +20,10 @@ export const TotalsSection = ({ data, trips, onChange }: TotalsSectionProps) => 
       const km = parseFloat(trip.business_km as string) || 0;
       totalBusiness += km;
     });
-    
+
     const totalAll = parseFloat(data.total_km_all as string) || totalBusiness;
     const businessPercent = totalAll > 0 ? (totalBusiness / totalAll * 100).toFixed(2) : '0';
-    
+
     onChange('total_km_business', totalBusiness.toString());
     onChange('business_percent', businessPercent);
   };

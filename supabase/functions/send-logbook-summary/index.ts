@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
@@ -22,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const submission: LogbookSubmission = await req.json();
-    
+
     console.log("Sending logbook emails for:", submission.driver_name);
     console.log("PDF data received:", submission.pdfData ? "Yes" : "No");
     console.log("PDF data length:", submission.pdfData?.length || 0);
@@ -153,10 +154,11 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in send-logbook-summary function:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
