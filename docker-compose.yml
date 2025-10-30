@@ -1,12 +1,14 @@
 version: '3.8'
 
 services:
-  app:
+  mileage-app:
     build: .
     ports:
       - "4173:4173"
     environment:
       - NODE_ENV=production
+      - VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4173"]

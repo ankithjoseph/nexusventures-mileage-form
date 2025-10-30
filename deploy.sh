@@ -1,51 +1,55 @@
 #!/bin/bash
 
-# Deployment script for VPS using Nixpacks
-# Usage: ./deploy.sh [server_ip] [user]
+# VPS Deployment Script for Mileage Form App
 
-set -e
+echo "🚀 Starting deployment..."
 
-SERVER_IP=${1:-"your-server-ip"}
-USER=${2:-"root"}
+# Update system
+echo "📦 Updating system packages..."
+sudo apt update && sudo apt upgrade -y
 
-echo "🚀 Deploying to VPS: $USER@$SERVER_IP"
+# Install Node.js if not present
+if ! command -v node &> /dev/null; then
+    echo "📦 Installing Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+fi
 
-# Build locally first
-echo "📦 Building application..."
+# Install PM2 for process management
+if ! command -v pm2 &> /dev/null; then
+    echo "📦 Installing PM2..."
+    sudo npm install -g pm2
+fi
+
+# Clone or update repository
+if [ ! -d "nexusventures-mileage-form" ]; then
+    echo "📦 Cloning repository..."
+    git clone https://github.com/ankithjoseph/nexusventures-mileage-form.git
+    cd nexusventures-mileage-form
+else
+    echo "📦 Updating repository..."
+    cd nexusventures-mileage-form
+    git pull origin main
+fi
+
+# Install dependencies
+echo "📦 Installing dependencies..."
+npm ci
+
+# Build application
+echo "🔨 Building application..."
 npm run build
 
-# Create deployment archive
-echo "📦 Creating deployment archive..."
-tar -czf deploy.tar.gz \
-    --exclude='node_modules' \
-    --exclude='.git' \
-    --exclude='dist' \
-    --exclude='.env' \
-    .
-
-# Upload to server
-echo "📤 Uploading to server..."
-scp deploy.tar.gz $USER@$SERVER_IP:~/
-
-# Deploy on server
-echo "🔧 Deploying on server..."
-ssh $USER@$SERVER_IP << 'EOF'
-    # Remove old deployment
-    rm -rf nexusventures-mileage-form
-    mkdir nexusventures-mileage-form
-    cd nexusventures-mileage-form
-
-    # Extract new deployment
-    tar -xzf ../deploy.tar.gz
-    rm ../deploy.tar.gz
-
-    # Install dependencies and build
-    npm ci
-    npm run build
-
-    # Start application (you might want to use PM2 or similar)
-    npm run preview -- --host 0.0.0.0 --port 4173 &
-EOF
+# Start application with PM2
+echo "🚀 Starting application..."
+pm2 stop mileage-app 2>/dev/null || true
+pm2 delete mileage-app 2>/dev/null || true
+pm2 start "npm run preview" --name mileage-app
+pm2 save
+pm2 startup
+pm2 save
 
 echo "✅ Deployment completed!"
-echo "🌐 Your app should be available at: http://$SERVER_IP:4173"
+echo "🌐 Your app should be running on port 4173"
+echo "📊 Check status with: pm2 status"
+echo "📝 View logs with: pm2 logs mileage-app"
