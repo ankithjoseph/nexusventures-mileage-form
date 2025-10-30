@@ -35,4 +35,4 @@ COPY --from=0 /app/dist ./dist
 EXPOSE 4173
 
 # Start the application
-CMD ["npm", "run", "preview"]
+CMD ["npx", "serve", "dist", "-s", "-l", "4173"]

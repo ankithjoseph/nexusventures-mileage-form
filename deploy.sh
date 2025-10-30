@@ -44,7 +44,7 @@ npm run build
 echo "🚀 Starting application..."
 pm2 stop mileage-app 2>/dev/null || true
 pm2 delete mileage-app 2>/dev/null || true
-pm2 start "npm run preview" --name mileage-app
+pm2 start "npx serve dist -s -l 4173" --name mileage-app
 pm2 save
 pm2 startup
 pm2 save
