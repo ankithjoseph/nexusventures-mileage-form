@@ -329,16 +329,16 @@ const ExpenseReport = () => {
       reader.onloadend = async () => {
         const base64PDF = reader.result?.toString().split(',')[1];
 
-        // Prepare data to send
+        // Send email with PDF attachment
         const emailData = {
           name: formData.name,
           email: formData.email,
           pps: formData.pps,
           pdfData: base64PDF,
+          type: 'expense-report'
         };
 
-        // Send emails using API endpoint
-        const response = await fetch('/api/send-expense-report', {
+        const response = await fetch('http://localhost:3001/api/send-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -95,67 +95,26 @@ const Index = () => {
       reader.onloadend = async () => {
         const base64PDF = reader.result?.toString().split(',')[1];
 
-        // Preparar datos para enviar
+        // Send email with PDF attachment
         const emailData = {
-          driver_name: formData.driver_name,
-          driver_email: formData.driver_email,
+          name: formData.driver_name,
+          email: formData.driver_email,
+          pps: formData.ppsn || 'N/A',
           pdfData: base64PDF,
-          vehicle_registration: formData.vehicle_registration,
+          type: 'mileage-logbook'
         };
 
-        // Enviar emails using Resend API
-        const response = await fetch('https://api.resend.com/emails', {
+        const response = await fetch('http://localhost:3001/api/send-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.RESEND_API_KEY}`,
           },
-          body: JSON.stringify({
-            from: 'Nexus Ventures Logbook <log@happydreamsireland.com>',
-            to: 'jesus@irishtaxagents.com',
-            subject: `Nuevo Registro de Business Mileage - ${formData.driver_name}`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
-                  Nuevo Registro de Business Mileage
-                </h1>
-                
-                <p style="font-size: 16px; margin: 20px 0;">
-                  Se ha recibido un nuevo registro de mileage logbook.
-                </p>
-
-                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                  <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Conductor:</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formData.driver_name}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Email:</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formData.driver_email}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Registro del Vehículo:</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formData.vehicle_registration}</td>
-                  </tr>
-                </table>
-
-                <p style="font-size: 14px; color: #666; margin: 20px 0;">
-                  El PDF del registro está adjunto.
-                </p>
-              </div>
-            `,
-            attachments: [
-              {
-                filename: 'logbook.pdf',
-                content: base64PDF,
-                type: 'application/pdf',
-              },
-            ],
-          }),
+          body: JSON.stringify(emailData),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to send email');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to send email');
         }
 
         toast.success(t('form.success'));

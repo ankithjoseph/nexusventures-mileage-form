@@ -6,22 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=production
-      - RESEND_API_KEY=${RESEND_API_KEY}
+      - "3000:80"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
     networks:
       - mileage-network
 
