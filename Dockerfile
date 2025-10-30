@@ -52,13 +52,14 @@ COPY package*.json ./
 # Copy production dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+# Copy API server files
+COPY api ./api
 
 # Copy health check script
 COPY --chmod=755 <<EOF /app/healthcheck.sh
 #!/bin/sh
-curl -f http://localhost:4173/health || exit 1
+# Check if server is responding
+curl -f http://localhost:3001/health || exit 1
 EOF
 
 # Change ownership to non-root user
@@ -70,10 +71,10 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD /app/healthcheck.sh
 
 # Expose port
-EXPOSE 4173
+EXPOSE 3001
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["npx", "serve", "dist", "-s", "-l", "4173"]
+# Start the server
+CMD ["node", "api/server.js"]

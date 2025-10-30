@@ -11,7 +11,7 @@ cmds = [
 ]
 
 [start]
-cmd = "npx serve dist -s -l 4173"
+cmd = "node api/server.js"
 
 [healthcheck]
-cmd = "curl -f http://localhost:4173 || exit 1"
+cmd = "curl -f http://localhost:3001/health || exit 1"
