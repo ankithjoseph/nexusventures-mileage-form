@@ -1,12 +1,12 @@
 # Nexus Ventures Mileage Form
 
-A professional business mileage logbook application for Irish employees and directors.
+A professional business mileage logbook application for Irish employees and directors with integrated email functionality.
 
 ## 🚀 Deployment Options
 
 ### Option 1: Nixpacks (Recommended)
 
-This project is configured for Nixpacks deployment. Nixpacks will automatically detect your Node.js/Vite setup and create an optimized Docker image.
+This project is configured for Nixpacks deployment. Nixpacks will automatically detect your Node.js/Vite setup and create an optimized Docker image with both frontend and API server.
 
 #### Deploy with Nixpacks:
 
@@ -18,7 +18,7 @@ npm install -g nixpacks
 nixpacks build .
 
 # Run the container
-docker run -p 4173:4173 <image-name>
+docker run -p 3001:3001 <image-name>
 ```
 
 ### Option 2: VPS Deployment
@@ -84,9 +84,10 @@ npm run preview
 
 ## 🔒 Security Notes
 
-- The Resend API key is exposed in client-side code for demo purposes
-- For production, consider moving email sending to a server-side endpoint
-- Configure proper CORS and security headers for your deployment
+- Email sending is handled server-side to prevent API key exposure
+- The Resend API key is securely stored as an environment variable
+- CORS is properly configured for secure API communication
+- All sensitive operations are performed on the server
 
 ## 📄 License
 
