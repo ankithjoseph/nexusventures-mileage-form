@@ -13,7 +13,7 @@ NC='\033[0m'
 
 # Configuration
 APP_NAME="mileage-app"
-APP_PORT=4173
+APP_PORT=3001
 LOG_FILE="logs/monitoring.log"
 HEALTH_ENDPOINT="http://localhost:$APP_PORT"
 
