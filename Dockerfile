@@ -52,6 +52,9 @@ COPY package*.json ./
 # Copy production dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules
 
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
 # Copy API server files
 COPY api ./api
 
