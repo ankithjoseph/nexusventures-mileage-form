@@ -116,7 +116,7 @@ app.post('/api/send-email', async (req, res) => {
 
     // Send email
     const { data, error } = await resend.emails.send({
-      from: 'Nexus Ventures <noreply@nexusventures.com>',
+      from: 'Nexus Ventures <noreply@nexusventures.eu>',
       to: ['jesus@irishtaxagents.com'],
       subject: subject,
       html: html,
