@@ -1,7 +1,0 @@
-project_id = "wtftyliqxyifglpvfhug"
-
-[functions.send-expense-report]
-verify_jwt = false
-
-[functions.send-logbook-summary]
-verify_jwt = false

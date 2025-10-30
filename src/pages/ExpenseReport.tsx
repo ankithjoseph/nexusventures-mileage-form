@@ -8,7 +8,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
 import { Send, Globe, Linkedin, Download } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -338,12 +337,61 @@ const ExpenseReport = () => {
           pdfData: base64PDF,
         };
 
-        // Send emails
-        const { error } = await supabase.functions.invoke('send-expense-report', {
-          body: emailData
+        // Send emails using Resend API
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: 'Nexus Ventures Expense Report <log@happydreamsireland.com>',
+            to: 'jesus@irishtaxagents.com',
+            subject: `Nuevo Expense Report - ${formData.name}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
+                  Nuevo Expense Report
+                </h1>
+                
+                <p style="font-size: 16px; margin: 20px 0;">
+                  Se ha recibido un nuevo expense report.
+                </p>
+
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                  <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Nombre:</strong></td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formData.name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Email:</strong></td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formData.email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>PPS:</strong></td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formData.pps}</td>
+                  </tr>
+                </table>
+
+                <p style="font-size: 14px; color: #666; margin: 20px 0;">
+                  El PDF del expense report está adjunto.
+                </p>
+              </div>
+            `,
+            attachments: [
+              {
+                filename: 'expense-report.pdf',
+                content: base64PDF,
+                type: 'application/pdf',
+              },
+            ],
+          }),
         });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to send email');
+        }
 
         toast.success(t('form.success'));
         setIsSubmitting(false);
