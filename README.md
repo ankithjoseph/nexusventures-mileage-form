@@ -4,21 +4,31 @@ A professional business mileage logbook application for Irish employees and dire
 
 ## 🚀 Deployment Options
 
-### Option 1: Nixpacks (Recommended)
+### Option 1: Docker (Recommended)
 
-This project is configured for Nixpacks deployment. Nixpacks will automatically detect your Node.js/Vite setup and create an optimized Docker image with both frontend and API server.
+This project uses Docker for containerized deployment with both frontend and API server in a single container.
 
-#### Deploy with Nixpacks:
+#### Deploy with Docker:
 
 ```bash
-# Install Nixpacks
-npm install -g nixpacks
+# Copy environment file
+cp .env.example .env
 
+# Edit .env with your actual values
+nano .env
+
+# Build and run with Docker Compose
+docker-compose up -d
+```
+
+#### Manual Docker Deployment:
+
+```bash
 # Build the image
-nixpacks build .
+docker build -t mileage-app .
 
 # Run the container
-docker run -p 3001:3001 <image-name>
+docker run -p 3001:3001 --env-file .env mileage-app
 ```
 
 ### Option 2: VPS Deployment
@@ -53,18 +63,18 @@ Simply open [Lovable](https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-82534
 Copy `.env.example` to `.env` and configure:
 
 ```env
-VITE_POCKETBASE_URL=http://your-pocketbase-server:8090
 RESEND_API_KEY=your-resend-api-key-here
 NODE_ENV=production
+PORT=3001
 ```
 
 ## 🛠️ Technologies Used
 
 - **Frontend**: React + TypeScript + Vite
 - **UI**: shadcn/ui + Tailwind CSS
-- **Backend**: PocketBase
+- **Backend**: Node.js + Express
 - **Email**: Resend API
-- **Deployment**: Nixpacks/Docker
+- **Deployment**: Docker
 
 ## 📦 Local Development
 
