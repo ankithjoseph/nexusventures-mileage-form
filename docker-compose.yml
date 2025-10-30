@@ -2,7 +2,10 @@ version: '3.8'
 
 services:
   mileage-app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
     ports:
       - "4173:4173"
     environment:
@@ -11,7 +14,19 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4173"]
+      test: ["CMD", "curl", "-f", "http://localhost:4173/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - mileage-network
+
+networks:
+  mileage-network:
+    driver: bridge
