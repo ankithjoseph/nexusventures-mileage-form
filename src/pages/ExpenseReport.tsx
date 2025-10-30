@@ -326,8 +326,9 @@ const ExpenseReport = () => {
       const reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
 
-      reader.onloadend = async () => {
-        const base64PDF = reader.result?.toString().split(',')[1];
+      reader.onloadend = async (event: ProgressEvent<FileReader>) => {
+        const result = event.target?.result;
+        const base64PDF = result?.toString().split(',')[1];
 
         // Send email with PDF attachment
         const emailData = {

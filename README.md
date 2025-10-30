@@ -67,8 +67,10 @@ docker-compose up -d
 docker build -t mileage-app .
 
 # Run the container
-docker run -p 3000:80 --env-file .env mileage-app
+docker run -p 3001:3001 --env-file .env mileage-app
 ```
+
+The application will be available at `http://localhost:3001`
 
 ### Option 3: VPS Deployment
 
@@ -116,7 +118,7 @@ NODE_ENV=production
 - **UI**: shadcn/ui + Tailwind CSS
 - **Email**: Resend API
 - **PDF Generation**: jsPDF + jsPDF-AutoTable
-- **Deployment**: Docker + Vercel (serverless option available)
+- **Deployment**: Docker + Node.js/Express (Vercel serverless option available)
 
 ## 📦 Local Development
 
