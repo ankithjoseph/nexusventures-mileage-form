@@ -1,73 +1,93 @@
-# Welcome to your Lovable project
+# Nexus Ventures Mileage Form
 
-## Project info
+A professional business mileage logbook application for Irish employees and directors.
 
-**URL**: https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea
+## 🚀 Deployment Options
 
-## How can I edit this code
+### Option 1: Nixpacks (Recommended)
 
-There are several ways of editing your application.
+This project is configured for Nixpacks deployment. Nixpacks will automatically detect your Node.js/Vite setup and create an optimized Docker image.
 
-**Use Lovable**
+#### Deploy with Nixpacks:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea) and start prompting.
+```bash
+# Install Nixpacks
+npm install -g nixpacks
 
-Changes made via Lovable will be committed automatically to this repo.
+# Build the image
+nixpacks build .
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Run the container
+docker run -p 4173:4173 <image-name>
 ```
 
-**Edit a file directly in GitHub**
+### Option 2: VPS Deployment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+#### Using Docker Compose:
 
-**Use GitHub Codespaces**
+```bash
+# Copy environment file
+cp .env.example .env
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Edit .env with your actual values
+nano .env
 
-## What technologies are used for this project?
+# Deploy with Docker Compose
+docker-compose up -d
+```
 
-This project is built with:
+#### Manual VPS Deployment:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+# Run the deployment script
+chmod +x deploy.sh
+./deploy.sh
+```
 
-## How can I deploy this project?
+### Option 3: Traditional Hosting
 
 Simply open [Lovable](https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## 🔧 Environment Variables
 
-Yes, you can!
+Copy `.env.example` to `.env` and configure:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```env
+VITE_POCKETBASE_URL=http://your-pocketbase-server:8090
+RESEND_API_KEY=your-resend-api-key-here
+NODE_ENV=production
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🛠️ Technologies Used
+
+- **Frontend**: React + TypeScript + Vite
+- **UI**: shadcn/ui + Tailwind CSS
+- **Backend**: PocketBase
+- **Email**: Resend API
+- **Deployment**: Nixpacks/Docker
+
+## 📦 Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## 🔒 Security Notes
+
+- The Resend API key is exposed in client-side code for demo purposes
+- For production, consider moving email sending to a server-side endpoint
+- Configure proper CORS and security headers for your deployment
+
+## 📄 License
+
+This project is private and proprietary to Nexus Ventures.
