@@ -15,7 +15,7 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
 
 // Simple request logger for debugging
 app.use((req, res, next) => {
@@ -137,9 +137,12 @@ app.post('/api/send-email', async (req, res) => {
     }
 
     try {
-      const resp = await resend.emails.send({
+      const adminEmail = process.env.ADMIN_EMAIL || 'ankeyit@gmail.com';
+
+      // First: send admin copy
+      const adminResp = await resend.emails.send({
         from: 'Nexus Ventures <noreply@ankithbjoseph.me>',
-        to: ['ankeyit@gmail.com'],
+        to: [adminEmail],
         subject,
         html,
         attachments: [
@@ -151,14 +154,55 @@ app.post('/api/send-email', async (req, res) => {
         ],
       });
 
-      // Resend SDK returns an object with `id` on success
-      const emailId = resp?.id;
-      if (!emailId) {
-        console.error('Unexpected Resend response:', resp);
-        return res.status(500).json({ error: 'Failed to send email' });
+      const adminEmailId = adminResp?.id;
+      if (!adminEmailId) {
+        console.error('Unexpected Resend response for admin:', adminResp);
+        return res.status(500).json({ error: 'Failed to send admin email' });
       }
 
-      res.json({ success: true, message: 'Email sent successfully', emailId });
+      // Then: attempt to send customer copy, but don't fail the whole request if it errors
+      let customerResult = { sent: false };
+      try {
+        // validate simple email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          customerResult = { sent: false, error: 'Invalid customer email' };
+          console.warn('Skipping customer send: invalid email', email);
+        } else {
+          const customerResp = await resend.emails.send({
+            from: 'Nexus Ventures <noreply@ankithbjoseph.me>',
+            to: [email],
+            subject: `Copy: ${subject}`,
+            html: `<p>Dear ${name},</p><p>Thanks — a copy of your submitted document is attached.</p>${html}`,
+            attachments: [
+              {
+                filename: filename,
+                content: base64,
+                type: 'application/pdf',
+              },
+            ],
+          });
+          const customerEmailId = customerResp?.id;
+          if (customerEmailId) {
+            customerResult = { sent: true, emailId: customerEmailId };
+          } else {
+            customerResult = { sent: false, error: customerResp };
+            console.error('Unexpected Resend response for customer:', customerResp);
+          }
+        }
+      } catch (custErr) {
+        console.error('Customer send error:', custErr);
+        customerResult = { sent: false, error: custErr?.message || String(custErr) };
+      }
+
+      // Return success for admin and include customer result so UI can surface partial failures
+      return res.json({
+        success: true,
+        message: 'Admin email sent',
+        adminEmailId,
+        customer: customerResult,
+      });
+
     } catch (err) {
       console.error('Resend error:', err);
       return res.status(500).json({ error: 'Failed to send email' });
