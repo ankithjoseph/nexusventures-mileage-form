@@ -17,6 +17,12 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// Simple request logger for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Serve static files from dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -32,19 +38,25 @@ app.get('*', (req, res) => {
 // Initialize Resend
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+console.log('Resend configured:', Boolean(resend));
 
 app.post('/api/send-email', async (req, res) => {
   try {
     const { name, email, pps, pdfData, type } = req.body;
 
+    // Log incoming payload summary
+    console.log('Incoming send-email request:', {
+      name: name?.slice(0, 40),
+      email,
+      pps,
+      type,
+      pdfDataLength: typeof pdfData === 'string' ? pdfData.length : undefined,
+    });
+
     // Check if Resend is configured
     if (!resend) {
-      console.log('Email would be sent with data:', { name, email, pps, type, pdfDataLength: pdfData?.length });
-      return res.json({
-        success: true,
-        message: 'Email simulated successfully (Resend API key not configured)',
-        simulated: true
-      });
+      console.error('RESEND_API_KEY is not configured. Cannot send email.');
+      return res.status(500).json({ error: 'RESEND_API_KEY not configured on server' });
     }
 
     // Validate required fields
