@@ -8,9 +8,7 @@
       "path": "./tsconfig.node.json"
     }
   ],
-  "exclude": [
-    "supabase/**"
-  ],
+  "exclude": [],
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

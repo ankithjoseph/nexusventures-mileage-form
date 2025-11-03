@@ -8,7 +8,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
 import { Send, Globe, Link, Download } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -327,23 +326,31 @@ const ExpenseReport = () => {
       const reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
 
-      reader.onloadend = async () => {
-        const base64PDF = reader.result?.toString().split(',')[1];
+      reader.onloadend = async (event: ProgressEvent<FileReader>) => {
+        const result = event.target?.result;
+        const base64PDF = result?.toString().split(',')[1];
 
-        // Prepare data to send
+        // Send email with PDF attachment
         const emailData = {
           name: formData.name,
           email: formData.email,
           pps: formData.pps,
           pdfData: base64PDF,
+          type: 'expense-report'
         };
 
-        // Send emails
-        const { error } = await supabase.functions.invoke('send-expense-report', {
-          body: emailData
+        const response = await fetch('http://localhost:3001/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailData),
         });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to send email');
+        }
 
         toast.success(t('form.success'));
         setIsSubmitting(false);

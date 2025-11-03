@@ -1,73 +1,172 @@
-# Welcome to your Lovable project
+# Nexus Ventures Mileage Form
 
-## Project info
+A professional business mileage logbook application for Irish employees and directors with serverless email functionality.
 
-**URL**: https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea
+## 🚀 Deployment Options
 
-## How can I edit this code
+### Option 1: Vercel (Recommended)
 
-There are several ways of editing your application.
+This project includes serverless functions for email sending via Resend.
 
-**Use Lovable**
+#### Deploy to Vercel:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea) and start prompting.
+```bash
+# Install Vercel CLI
+npm i -g vercel
 
-Changes made via Lovable will be committed automatically to this repo.
+# Login to Vercel
+vercel login
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Deploy
+vercel --prod
 ```
 
-**Edit a file directly in GitHub**
+#### Environment Variables on Vercel:
+Set the following in your Vercel project settings:
+- `RESEND_API_KEY`: Your Resend API key
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📡 Serverless Email Function
 
-**Use GitHub Codespaces**
+The application includes a Vercel serverless function (`api/send-email.ts`) that:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. **Receives form data** from the frontend
+2. **Generates PDF** server-side (optional)
+3. **Sends email** via Resend API with PDF attachment
+4. **Returns success/error** response
 
-## What technologies are used for this project?
+### Function Features:
+- **Type-safe**: Written in TypeScript
+- **Error handling**: Comprehensive error responses
+- **Security**: API key stored securely in environment variables
+- **Attachments**: PDF files attached to emails
+- **Validation**: Input validation for required fields
 
-This project is built with:
+### Email Templates:
+- **Expense Reports**: Professional expense report notifications
+- **Mileage Logbooks**: Business mileage logbook submissions
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Option 2: Docker
 
-## How can I deploy this project?
+#### Deploy with Docker:
+
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Edit .env with your actual values
+nano .env
+
+# Build and run with Docker Compose
+docker-compose up -d
+```
+
+#### Manual Docker Deployment:
+
+```bash
+# Build the image
+docker build -t mileage-app .
+
+# Run the container
+docker run -p 3001:3001 --env-file .env mileage-app
+```
+
+The application will be available at `http://localhost:3001`
+
+### Option 3: VPS Deployment
+
+#### Using Docker Compose:
+
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Edit .env with your actual values
+nano .env
+
+# Deploy with Docker Compose
+docker-compose up -d
+```
+
+#### Manual VPS Deployment:
+
+```bash
+# Run the deployment script
+chmod +x deploy.sh
+./deploy.sh
+```
+
+### Option 3: Traditional Hosting
 
 Simply open [Lovable](https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## 🔧 Environment Variables
 
-Yes, you can!
+Copy `.env.example` to `.env` and configure:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```env
+# Email Service (Resend)
+RESEND_API_KEY=re_your_resend_api_key_here
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+# Application Configuration
+NODE_ENV=production
+```
+
+## 🛠️ Technologies Used
+
+- **Frontend**: React + TypeScript + Vite
+- **Backend**: Express.js server for email functionality
+- **UI**: shadcn/ui + Tailwind CSS
+- **Email**: Resend API
+- **PDF Generation**: jsPDF + jsPDF-AutoTable
+- **Deployment**: Docker + Node.js/Express (Vercel serverless option available)
+
+## 📦 Local Development
+
+### Frontend Only (Development)
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### Full Stack Development (with Email Server)
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Resend API key
+
+# Start the email server (in one terminal)
+npm run server
+
+# Start the frontend (in another terminal)
+npm run dev
+```
+
+### Testing Email Functionality
+1. Start the email server: `npm run server`
+2. Start the frontend: `npm run dev`
+3. Fill out and submit a form
+4. Check the email server console for success/error messages
+5. Verify emails are received at the configured address
+
+## 🔒 Security Notes
+
+- Email sending is handled server-side via Vercel serverless functions to prevent API key exposure
+- The Resend API key is securely stored as an environment variable in Vercel
+- PDF generation happens client-side for immediate user feedback
+- All sensitive operations are performed on the server via serverless functions
+
+## 📄 License
+
+This project is private and proprietary to Nexus Ventures.

@@ -11,7 +11,6 @@ import { generatePDF } from "@/utils/pdfGenerator";
 import { Download, Save, Upload, FileText, Link, Globe, Send } from "lucide-react";
 import { toast } from "sonner";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
-import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -96,20 +95,27 @@ const Index = () => {
       reader.onloadend = async () => {
         const base64PDF = reader.result?.toString().split(',')[1];
 
-        // Preparar datos para enviar
+        // Send email with PDF attachment
         const emailData = {
-          driver_name: formData.driver_name,
-          driver_email: formData.driver_email,
+          name: formData.driver_name,
+          email: formData.driver_email,
+          pps: formData.ppsn || 'N/A',
           pdfData: base64PDF,
-          vehicle_registration: formData.vehicle_registration,
+          type: 'mileage-logbook'
         };
 
-        // Enviar emails
-        const { error } = await supabase.functions.invoke('send-logbook-summary', {
-          body: emailData
+        const response = await fetch('http://localhost:3001/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailData),
         });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to send email');
+        }
 
         toast.success(t('form.success'));
         setIsSubmitting(false);
