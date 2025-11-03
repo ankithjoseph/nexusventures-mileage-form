@@ -41,10 +41,8 @@ Thumbs.db
 .git
 .gitignore
 
-# Docker
-Dockerfile*
-docker-compose*.yml
-.dockerignore
+# Docker files removed from active use
+# This .dockerignore file preserved for history; Docker artifacts were removed.
 
 # Nixpacks
 nixpacks.toml

@@ -2,6 +2,7 @@
 // Run with: node test-email.js
 
 import fetch from 'node-fetch';
+import { fileURLToPath } from 'url';
 
 const testEmailData = {
   name: "Test User",
@@ -36,7 +37,8 @@ async function testEmailEndpoint() {
   }
 }
 
-// Only run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run the test when executed directly (works on Windows and POSIX)
+// Compare the resolved file path of this module to process.argv[1]
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
   testEmailEndpoint();
 }

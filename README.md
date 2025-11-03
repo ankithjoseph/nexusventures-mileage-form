@@ -45,54 +45,17 @@ The application includes a Vercel serverless function (`api/send-email.ts`) that
 - **Expense Reports**: Professional expense report notifications
 - **Mileage Logbooks**: Business mileage logbook submissions
 
-### Option 2: Docker
+### Option 2: Docker (removed)
+> Note: Docker deployment files and instructions have been removed from this repository.
 
-#### Deploy with Docker:
-
-```bash
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your actual values
-nano .env
-
-# Build and run with Docker Compose
-docker-compose up -d
-```
-
-#### Manual Docker Deployment:
+The recommended deployment path remains Vercel (see Option 1 above) or any platform that supports Node/Vercel-style deployments. For local full-stack development, use the included Express server:
 
 ```bash
-# Build the image
-docker build -t mileage-app .
+# Start the email server (in one terminal)
+npm run server
 
-# Run the container
-docker run -p 3001:3001 --env-file .env mileage-app
-```
-
-The application will be available at `http://localhost:3001`
-
-### Option 3: VPS Deployment
-
-#### Using Docker Compose:
-
-```bash
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your actual values
-nano .env
-
-# Deploy with Docker Compose
-docker-compose up -d
-```
-
-#### Manual VPS Deployment:
-
-```bash
-# Run the deployment script
-chmod +x deploy.sh
-./deploy.sh
+# Start the frontend (in another terminal)
+npm run dev
 ```
 
 ### Option 3: Traditional Hosting
@@ -118,7 +81,7 @@ NODE_ENV=production
 - **UI**: shadcn/ui + Tailwind CSS
 - **Email**: Resend API
 - **PDF Generation**: jsPDF + jsPDF-AutoTable
-- **Deployment**: Docker + Node.js/Express (Vercel serverless option available)
+- **Deployment**: Vercel (serverless) + Node.js/Express
 
 ## 📦 Local Development
 
