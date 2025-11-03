@@ -8,7 +8,7 @@ import { CapitalAllowancesSection } from "@/components/CapitalAllowancesSection"
 import { DeclarationSection } from "@/components/DeclarationSection";
 import { LogbookData, TripRow, createEmptyLogbook, createEmptyTrip } from "@/types/logbook";
 import { generatePDF } from "@/utils/pdfGenerator";
-import { Download, Save, Upload, FileText, Linkedin, Globe, Send } from "lucide-react";
+import { Download, Save, Upload, FileText, Link, Globe, Send } from "lucide-react";
 import { toast } from "sonner";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
 import { supabase } from "@/integrations/supabase/client";
@@ -261,12 +261,12 @@ const Index = () => {
                 www.nexusventures.eu
               </a>
               <a
-                href="https://www.linkedin.com/company/nexusventures"
+                href="https://www.linkedin.com/company/nexus-ventures-limited"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary transition-colors"
               >
-                <Linkedin className="w-4 h-4" />
+                <Link className="w-4 h-4" />
                 LinkedIn
               </a>
             </div>

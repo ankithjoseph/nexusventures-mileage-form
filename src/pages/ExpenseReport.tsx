@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
-import { Send, Globe, Linkedin, Download } from "lucide-react";
+import { Send, Globe, Link, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
@@ -882,7 +882,7 @@ const ExpenseReport = () => {
               />
             </div>
             <div className="text-center">
-              <p>Informe de Gastos por Viajes de Trabajo – Ireland Tax Year 2024</p>
+              <p>Business Expense Report – Ireland Tax Year 2024</p>
               <p className="mt-1">For tax compliance purposes. Keep records for at least 6 years.</p>
             </div>
             <div className="flex items-center gap-4">
@@ -896,12 +896,12 @@ const ExpenseReport = () => {
                 www.nexusventures.eu
               </a>
               <a
-                href="https://www.linkedin.com/company/nexusventures"
+                href="https://www.linkedin.com/company/nexus-ventures-limited"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-primary transition-colors"
               >
-                <Linkedin className="w-4 h-4" />
+                <Link className="w-4 h-4" />
                 LinkedIn
               </a>
             </div>
