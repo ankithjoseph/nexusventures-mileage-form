@@ -144,8 +144,8 @@ app.post('/api/send-email', async (req, res) => {
         html,
         attachments: [
           {
-            name: filename,
-            data: base64,
+            filename: filename,
+            content: base64,
             type: 'application/pdf',
           },
         ],
