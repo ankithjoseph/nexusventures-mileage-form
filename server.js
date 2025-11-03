@@ -138,7 +138,7 @@ app.post('/api/send-email', async (req, res) => {
 
     try {
       const resp = await resend.emails.send({
-        from: 'Nexus Ventures <noreply@nexusventures.eu>',
+        from: 'Nexus Ventures <noreply@ankithbjoseph.me>',
         to: ['ankeyit@gmail.com'],
         subject,
         html,
