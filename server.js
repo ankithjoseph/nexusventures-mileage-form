@@ -39,6 +39,8 @@ app.get('*', (req, res) => {
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 console.log('Resend configured:', Boolean(resend));
+// Helper to extract email id from Resend responses (SDK may return { id } or { data: { id } })
+const getEmailId = (resp) => resp?.id ?? resp?.data?.id ?? null;
 
 app.post('/api/send-email', async (req, res) => {
   try {
@@ -154,10 +156,10 @@ app.post('/api/send-email', async (req, res) => {
         ],
       });
 
-      const adminEmailId = adminResp?.id;
+      const adminEmailId = getEmailId(adminResp);
       if (!adminEmailId) {
         console.error('Unexpected Resend response for admin:', adminResp);
-        return res.status(500).json({ error: 'Failed to send admin email' });
+        return res.status(500).json({ error: 'Failed to send admin email', details: adminResp });
       }
 
       // Then: attempt to send customer copy, but don't fail the whole request if it errors
@@ -182,7 +184,7 @@ app.post('/api/send-email', async (req, res) => {
               },
             ],
           });
-          const customerEmailId = customerResp?.id;
+          const customerEmailId = getEmailId(customerResp);
           if (customerEmailId) {
             customerResult = { sent: true, emailId: customerEmailId };
           } else {
