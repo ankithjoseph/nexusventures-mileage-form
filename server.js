@@ -5,7 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Resend } from 'resend';
+import Resend from 'resend';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,33 +114,43 @@ app.post('/api/send-email', async (req, res) => {
       </div>
     `;
 
-    // Send email
-    const { data, error } = await resend.emails.send({
-      from: 'Nexus Ventures <noreply@nexusventures.eu>',
-      to: ['ankeyit@gmail.com'],  //jesus@irishtaxagents.com
-      subject: subject,
-      html: html,
-      attachments: [
-        {
-          filename: isExpenseReport ? 'expense-report.pdf' : 'mileage-logbook.pdf',
-          content: pdfData,
-          type: 'application/pdf',
-        },
-      ],
-    });
+    // Send email via Resend
+    const filename = isExpenseReport ? 'expense-report.pdf' : 'mileage-logbook.pdf';
 
-    if (error) {
-      console.error('Resend error:', error);
-      return res.status(500).json({
-        error: 'Failed to send email'
-      });
+    // Normalize pdfData: accept either raw base64 or data URL (data:...;base64,...)
+    let base64 = pdfData ?? '';
+    if (base64.startsWith('data:')) {
+      const parts = base64.split(',');
+      base64 = parts[1] || '';
     }
 
-    res.json({
-      success: true,
-      message: 'Email sent successfully',
-      emailId: data?.id
-    });
+    try {
+      const resp = await resend.emails.send({
+        from: 'Nexus Ventures <noreply@nexusventures.eu>',
+        to: ['ankeyit@gmail.com'],
+        subject,
+        html,
+        attachments: [
+          {
+            name: filename,
+            data: base64,
+            type: 'application/pdf',
+          },
+        ],
+      });
+
+      // Resend SDK returns an object with `id` on success
+      const emailId = resp?.id;
+      if (!emailId) {
+        console.error('Unexpected Resend response:', resp);
+        return res.status(500).json({ error: 'Failed to send email' });
+      }
+
+      res.json({ success: true, message: 'Email sent successfully', emailId });
+    } catch (err) {
+      console.error('Resend error:', err);
+      return res.status(500).json({ error: 'Failed to send email' });
+    }
 
   } catch (error) {
     console.error('Server error:', error);
