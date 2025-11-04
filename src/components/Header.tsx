@@ -3,6 +3,7 @@ import { FileText, Receipt, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LoginModal from '@/components/LoginModal';
+import { useAuth } from '@/contexts/AuthContext';
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
 
 export const Header = () => {
@@ -63,23 +64,43 @@ export const Header = () => {
               </Link>
             </nav>
             <div className="flex items-center gap-2">
-              <Button
-                onClick={toggleLanguage}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Languages className="w-4 h-4" />
-                {t('lang.toggle')}
-              </Button>
+                <Button
+                  onClick={toggleLanguage}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Languages className="w-4 h-4" />
+                  {t('lang.toggle')}
+                </Button>
 
-              {/* Auth UI */}
-              <LoginModal />
-            </div>
+                {/* Auth UI: show login modal when not signed in; show user and logout when signed in */}
+                <AuthArea />
+              </div>
           </div>
         </div>
       </div>
     </header>
   );
 };
+
+  const AuthArea = () => {
+    const { user, logout } = useAuth();
+
+    if (!user) {
+      return <LoginModal />;
+    }
+
+    const name = (user?.name || user?.email || user?.username || 'User');
+
+    return (
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col text-sm text-right">
+          <span className="font-medium">{name}</span>
+          {user?.email && <span className="text-muted-foreground">{user.email}</span>}
+        </div>
+        <Button size="sm" variant="outline" onClick={() => logout()}>Logout</Button>
+      </div>
+    );
+  };
  

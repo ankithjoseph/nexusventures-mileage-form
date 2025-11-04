@@ -7,9 +7,9 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+import Auth from "./pages/Auth";
 import PasswordResetRequest from "./pages/PasswordResetRequest";
+import OAuthCallback from "./pages/OAuthCallback";
 import ProtectedRoute from './lib/ProtectedRoute';
 import NotFound from "./pages/NotFound";
 
@@ -26,9 +26,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/expense-report" element={<ProtectedRoute><ExpenseReport /></ProtectedRoute>} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Auth />} />
+            <Route path="/signup" element={<Auth />} />
             <Route path="/reset-password" element={<PasswordResetRequest />} />
+            <Route path="/oauth-callback" element={<OAuthCallback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
