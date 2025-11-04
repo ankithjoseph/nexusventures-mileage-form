@@ -7,6 +7,10 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import PasswordResetRequest from "./pages/PasswordResetRequest";
+import ProtectedRoute from './lib/ProtectedRoute';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,8 +24,11 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/expense-report" element={<ExpenseReport />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/expense-report" element={<ProtectedRoute><ExpenseReport /></ProtectedRoute>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/reset-password" element={<PasswordResetRequest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
