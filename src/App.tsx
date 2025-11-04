@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from '@/contexts/AuthContext';
 import Login from './pages/Login';
+import RequireAuth from '@/components/RequireAuth';
 import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
 import NotFound from "./pages/NotFound";
@@ -22,8 +23,25 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Index />} />
-              <Route path="/expense-report" element={<ExpenseReport />} />
+
+              {/* Protected routes - require authentication */}
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <Index />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/expense-report"
+                element={
+                  <RequireAuth>
+                    <ExpenseReport />
+                  </RequireAuth>
+                }
+              />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
