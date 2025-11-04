@@ -14,22 +14,27 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserModel>(pb.authStore.model ?? null);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    const onChange = () => setUser(pb.authStore.model ?? null);
-    // pocketbase has an authStore.onChange hook
-    // PocketBase exposes authStore which can be observed; if not, fall back to polling
-    if ((pb.authStore as any).onChange !== undefined) {
-      try {
-        (pb.authStore as any).onChange = onChange;
-      } catch (e) {
-        const id = setInterval(() => onChange(), 1000);
-        return () => clearInterval(id);
+    // Poll authStore for changes. This is safe and avoids mutating SDK internals.
+    let lastModelId = pb.authStore.model?.id ?? null;
+    const sync = () => {
+      const model = pb.authStore.model ?? null;
+      const modelId = model?.id ?? null;
+      if (modelId !== lastModelId) {
+        lastModelId = modelId;
+        setUser(model);
       }
-    } else {
-      const id = setInterval(() => onChange(), 1000);
-      return () => clearInterval(id);
-    }
+      // also ensure we update on startup
+      if (initializing) setInitializing(false);
+    };
+
+    // run once immediately
+    sync();
+
+    const id = setInterval(sync, 500);
+    return () => clearInterval(id);
   }, []);
 
   const login = async (email: string, password: string, remember = true): Promise<any> => {
@@ -43,11 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const value: AuthContextValue = {
+  const value: AuthContextValue & { initializing?: boolean } = {
     user,
     isAuthenticated: Boolean(user),
     login,
     logout,
+    initializing,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
