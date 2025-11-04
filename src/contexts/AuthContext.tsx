@@ -1,44 +1,41 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import pb from '@/lib/pocketbase';
 
+type UserModel = any;
+
 interface AuthContextValue {
-  user: any | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<any>;
+  user: UserModel;
+  isAuthenticated: boolean;
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserModel>(pb.authStore.model ?? null);
 
   useEffect(() => {
-    // restore auth from PocketBase authStore
-    const model = pb.authStore.model;
-    if (model) setUser(model);
-    setLoading(false);
-
-    // listen to changes
-    const remove = pb.authStore.onChange(() => {
-      setUser(pb.authStore.model ?? null);
-    });
-
-    return () => {
-      if (remove && typeof remove === 'function') remove();
-    };
+    const onChange = () => setUser(pb.authStore.model ?? null);
+    // pocketbase has an authStore.onChange hook
+    // PocketBase exposes authStore which can be observed; if not, fall back to polling
+    if ((pb.authStore as any).onChange !== undefined) {
+      try {
+        (pb.authStore as any).onChange = onChange;
+      } catch (e) {
+        const id = setInterval(() => onChange(), 1000);
+        return () => clearInterval(id);
+      }
+    } else {
+      const id = setInterval(() => onChange(), 1000);
+      return () => clearInterval(id);
+    }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
-      setUser(authData.record ?? pb.authStore.model);
-      return authData;
-    } finally {
-      setLoading(false);
-    }
+  const login = async (email: string, password: string, remember = true): Promise<any> => {
+    const auth = await pb.collection('users').authWithPassword(email, password);
+    setUser(pb.authStore.model ?? null);
+    return auth;
   };
 
   const logout = () => {
@@ -46,15 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextValue = {
+    user,
+    isAuthenticated: Boolean(user),
+    login,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
-};
+}

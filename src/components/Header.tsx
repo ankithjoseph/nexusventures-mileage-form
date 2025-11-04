@@ -1,9 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { FileText, Receipt, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/contexts/LanguageContext";
-import LoginModal from '@/components/LoginModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from "@/contexts/LanguageContext";
 import nexusLogo from "@/assets/nexus-ventures-logo.png";
 
 export const Header = () => {
@@ -64,19 +64,17 @@ export const Header = () => {
               </Link>
             </nav>
             <div className="flex items-center gap-2">
-                <Button
-                  onClick={toggleLanguage}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Languages className="w-4 h-4" />
-                  {t('lang.toggle')}
-                </Button>
-
-                {/* Auth UI: show login modal when not signed in; show user and logout when signed in */}
-                <AuthArea />
-              </div>
+              <Button
+                onClick={toggleLanguage}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Languages className="w-4 h-4" />
+                {t('lang.toggle')}
+              </Button>
+              <AuthButtons />
+            </div>
           </div>
         </div>
       </div>
@@ -84,23 +82,24 @@ export const Header = () => {
   );
 };
 
-  const AuthArea = () => {
-    const { user, logout } = useAuth();
+const AuthButtons = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-    if (!user) {
-      return <LoginModal />;
-    }
-
-    const name = (user?.name || user?.email || user?.username || 'User');
-
+  if (user) {
     return (
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col text-sm text-right">
-          <span className="font-medium">{name}</span>
-          {user?.email && <span className="text-muted-foreground">{user.email}</span>}
-        </div>
-        <Button size="sm" variant="outline" onClick={() => logout()}>Logout</Button>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">{user?.email ?? user?.username}</span>
+        <Button size="sm" variant="ghost" onClick={() => { logout(); navigate('/login'); }}>
+          Logout
+        </Button>
       </div>
     );
-  };
- 
+  }
+
+  return (
+    <Button size="sm" onClick={() => navigate('/login')}>
+      Login
+    </Button>
+  );
+};
