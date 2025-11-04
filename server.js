@@ -41,6 +41,11 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 console.log('Resend configured:', Boolean(resend));
 // Helper to extract email id from Resend responses (SDK may return { id } or { data: { id } })
 const getEmailId = (resp) => resp?.id ?? resp?.data?.id ?? null;
+// Environment-configurable addresses
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ankeyit@gmail.com';
+const FROM_NAME = process.env.FROM_NAME || 'Nexus Ventures';
+const FROM_ADDRESS = process.env.FROM_ADDRESS || 'noreply@ankithbjoseph.me';
+const FROM = `${FROM_NAME} <${FROM_ADDRESS}>`;
 
 app.post('/api/send-email', async (req, res) => {
   try {
@@ -139,12 +144,10 @@ app.post('/api/send-email', async (req, res) => {
     }
 
     try {
-      const adminEmail = process.env.ADMIN_EMAIL || 'ankeyit@gmail.com';
-
       // First: send admin copy
       const adminResp = await resend.emails.send({
-        from: 'Nexus Ventures <noreply@ankithbjoseph.me>',
-        to: [adminEmail],
+        from: FROM,
+        to: [ADMIN_EMAIL],
         subject,
         html,
         attachments: [
@@ -171,19 +174,107 @@ app.post('/api/send-email', async (req, res) => {
           customerResult = { sent: false, error: 'Invalid customer email' };
           console.warn('Skipping customer send: invalid email', email);
         } else {
-          const customerResp = await resend.emails.send({
-            from: 'Nexus Ventures <noreply@ankithbjoseph.me>',
-            to: [email],
-            subject: `Copy: ${subject}`,
-            html: `<p>Dear ${name},</p><p>Thanks — a copy of your submitted document is attached.</p>${html}`,
-            attachments: [
-              {
-                filename: filename,
-                content: base64,
-                type: 'application/pdf',
-              },
-            ],
-          });
+            // Build user-facing email based on form type to match provided templates
+            const today = new Date().toISOString().split('T')[0];
+            let customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;
+            let customerSubject = `Confirmación - ${subject}`;
+            let customerHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><p>Estimado/a ${name},</p><p>Gracias — una copia de su documento enviado está adjunta.</p></div>`;
+            let customerFilename = `copy-${filename}`;
+
+            if (isExpenseReport) {
+              customerFrom = `${FROM_NAME} Expense Report <${FROM_ADDRESS}>`;
+              customerSubject = `Confirmación de Informe - Gastos por Viajes de Trabajo`;
+              customerHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
+                    Gracias por su informe
+                  </h1>
+
+                  <p style="font-size: 16px; margin: 20px 0;">
+                    Estimado/a ${name},
+                  </p>
+
+                  <p style="font-size: 16px; margin: 20px 0;">
+                    Hemos recibido exitosamente su informe de gastos por viajes de trabajo.
+                    Adjuntamos una copia del mismo para sus registros.
+                  </p>
+
+                  <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0; color: #2d3748;">
+                      <strong>PPS:</strong> ${pps}
+                    </p>
+                  </div>
+
+                  <p style="font-size: 14px; color: #718096; margin-top: 30px;">
+                    Si tiene alguna pregunta, no dude en contactarnos.
+                  </p>
+
+                  <p style="font-size: 14px; margin-top: 30px;">
+                    Saludos cordiales,<br>
+                    <strong>Nexus Ventures Team</strong>
+                  </p>
+
+                  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
+                    <a href="https://www.nexusventures.eu" style="color: #1a365d; text-decoration: none;">www.nexusventures.eu</a>
+                  </div>
+                </div>
+              `;
+              customerFilename = `mi-informe-gastos-${today}.pdf`;
+            } else {
+              // mileage/logbook
+              customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;
+              customerSubject = `Confirmación de Registro - Business Mileage Logbook`;
+              customerHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
+                    Gracias por su registro
+                  </h1>
+
+                  <p style="font-size: 16px; margin: 20px 0;">
+                    Estimado/a ${name},
+                  </p>
+
+                  <p style="font-size: 16px; margin: 20px 0;">
+                    Hemos recibido exitosamente su formulario de Business Mileage Logbook. 
+                    Adjuntamos una copia del mismo para sus registros.
+                  </p>
+
+                  <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0; color: #2d3748;">
+                      <strong>Vehículo:</strong> ${filename.includes('mileage-logbook') ? '' : ''}
+                    </p>
+                  </div>
+
+                  <p style="font-size: 14px; color: #718096; margin-top: 30px;">
+                    Si tiene alguna pregunta, no dude en contactarnos.
+                  </p>
+
+                  <p style="font-size: 14px; margin-top: 30px;">
+                    Saludos cordiales,<br>
+                    <strong>Nexus Ventures Team</strong>
+                  </p>
+
+                  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
+                    <a href="https://www.nexusventures.eu" style="color: #1a365d; text-decoration: none;">www.nexusventures.eu</a>
+                  </div>
+                </div>
+              `;
+              customerFilename = `mi-logbook-${today}.pdf`;
+            }
+
+            const customerResp = await resend.emails.send({
+              from: customerFrom,
+              to: [email],
+              subject: customerSubject,
+              html: customerHtml,
+              attachments: [
+                {
+                  filename: customerFilename,
+                  content: base64,
+                  type: 'application/pdf',
+                },
+              ],
+            });
           const customerEmailId = getEmailId(customerResp);
           if (customerEmailId) {
             customerResult = { sent: true, emailId: customerEmailId };
