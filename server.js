@@ -42,9 +42,9 @@ console.log('Resend configured:', Boolean(resend));
 // Helper to extract email id from Resend responses (SDK may return { id } or { data: { id } })
 const getEmailId = (resp) => resp?.id ?? resp?.data?.id ?? null;
 // Environment-configurable addresses
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'ankeyit@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jesus@irishtaxagents.com';
 const FROM_NAME = process.env.FROM_NAME || 'Nexus Ventures';
-const FROM_ADDRESS = process.env.FROM_ADDRESS || 'noreply@ankithbjoseph.me';
+const FROM_ADDRESS = process.env.FROM_ADDRESS || 'noreply@nexusventures.eu';
 const FROM = `${FROM_NAME} <${FROM_ADDRESS}>`;
 
 app.post('/api/send-email', async (req, res) => {
