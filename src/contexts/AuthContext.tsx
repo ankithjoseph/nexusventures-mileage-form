@@ -17,23 +17,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // Poll authStore for changes. This is safe and avoids mutating SDK internals.
-    let lastModelId = pb.authStore.model?.id ?? null;
-    const sync = () => {
+    // Prefer PocketBase's authStore.onChange if available. It's more efficient
+    // than polling and doesn't require touching SDK internals.
+    let didInit = false;
+    const handler = () => {
       const model = pb.authStore.model ?? null;
-      const modelId = model?.id ?? null;
-      if (modelId !== lastModelId) {
-        lastModelId = modelId;
-        setUser(model);
+      setUser(model);
+      if (!didInit) {
+        didInit = true;
+        setInitializing(false);
       }
-      // also ensure we update on startup
-      if (initializing) setInitializing(false);
     };
 
-    // run once immediately
-    sync();
+    // run once immediately to hydrate
+    handler();
 
-    const id = setInterval(sync, 500);
+    const authStoreAny = pb.authStore as any;
+    if (typeof authStoreAny.onChange === 'function') {
+      // onChange typically returns an unsubscribe function; call it on cleanup if provided
+      const unsub = authStoreAny.onChange(() => handler());
+      return () => {
+        try {
+          if (typeof unsub === 'function') unsub();
+        } catch (e) {
+          // ignore unsubscribe errors
+        }
+      };
+    }
+
+    // Fallback to polling if onChange is not available
+    const id = setInterval(handler, 500);
     return () => clearInterval(id);
   }, []);
 
