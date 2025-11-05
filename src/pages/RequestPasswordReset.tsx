@@ -4,8 +4,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-import pb from '@/lib/pocketbase';
 import { useNavigate } from 'react-router-dom';
+
+// reCAPTCHA site key (Vite exposes it as import.meta.env)
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+
+async function loadRecaptcha(siteKey?: string) {
+  if (!siteKey) return;
+  if ((window as any).grecaptcha) return;
+  return new Promise<void>((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load reCAPTCHA')); 
+    document.head.appendChild(s);
+  });
+}
 
 const RequestPasswordReset: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,18 +31,33 @@ const RequestPasswordReset: React.FC = () => {
     e?.preventDefault();
     setLoading(true);
     try {
-      // first check if a user with this email exists
-      const list = await pb.collection('users').getList(1, 1, { filter: `email = "${email}"` });
-      if (!list || list.total === 0) {
-        toast({ title: 'No account found', description: 'No account is registered with that email. Please sign up first.' });
-        // redirect to login where user can sign up
-        navigate('/login');
-        return;
+      // Load reCAPTCHA and get token (if configured)
+      let recaptchaToken: string | undefined;
+      if (RECAPTCHA_SITE_KEY) {
+        try {
+          await loadRecaptcha(RECAPTCHA_SITE_KEY);
+          const grecaptcha = (window as any).grecaptcha;
+          if (grecaptcha && grecaptcha.execute) {
+            recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'request_password_reset' });
+          }
+        } catch (e) {
+          console.warn('reCAPTCHA load failed', e);
+        }
       }
 
-      await pb.collection('users').requestPasswordReset(email);
-      toast({ title: 'Reset email sent', description: 'Check your inbox for a link to reset your password.' });
-      navigate('/login');
+      // Call server-side endpoint that applies rate-limits and recaptcha verification
+      const resp = await fetch('/api/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, recaptchaToken }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) {
+        toast({ title: 'Request failed', description: json?.error || 'Unable to send reset email', variant: 'destructive' });
+      } else {
+        toast({ title: 'Reset email requested', description: json?.message || 'If an account exists, a reset link will be sent.' });
+        navigate('/login');
+      }
     } catch (err: any) {
       console.error('request reset error', err);
       toast({ title: 'Request failed', description: err?.message || 'Unable to send reset email', variant: 'destructive' });

@@ -6,6 +6,8 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
+import PocketBase from 'pocketbase';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +18,41 @@ const port = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
+
+// Simple in-memory rate limiter (per-email and per-IP). This is intentionally
+// small and lightweight: it protects the password-reset endpoint from abuse.
+// For production, consider a shared store (Redis) so multiple server instances
+// share state.
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS_PER_EMAIL = 3;
+const MAX_REQUESTS_PER_IP = 10;
+const emailRateMap = new Map(); // email -> { count, firstAt }
+const ipRateMap = new Map(); // ip -> { count, firstAt }
+
+// PocketBase client for server-side operations
+const POCKETBASE_URL = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090';
+const pbServer = new PocketBase(POCKETBASE_URL);
+
+// Helper to check & increment rate limits; returns { ok: boolean, reason?: string }
+function checkAndIncrRate(map, key, max) {
+  const now = Date.now();
+  const existing = map.get(key);
+  if (!existing) {
+    map.set(key, { count: 1, firstAt: now });
+    return { ok: true };
+  }
+  if (now - existing.firstAt > RATE_LIMIT_WINDOW_MS) {
+    // reset window
+    map.set(key, { count: 1, firstAt: now });
+    return { ok: true };
+  }
+  if (existing.count >= max) {
+    return { ok: false, reason: 'rate_limited' };
+  }
+  existing.count += 1;
+  map.set(key, existing);
+  return { ok: true };
+}
 
 
 // Serve static files from dist directory
@@ -323,4 +360,76 @@ app.get('/health', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Email server running on port ${port}`);
+});
+
+// Password reset request endpoint with reCAPTCHA and rate-limiting.
+app.post('/api/request-password-reset', async (req, res) => {
+  try {
+    const { email, recaptchaToken } = req.body || {};
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
+
+    if (!email) {
+      return res.status(400).json({ error: 'email required' });
+    }
+
+    // Verify reCAPTCHA if configured
+    const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET;
+    if (RECAPTCHA_SECRET) {
+      if (!recaptchaToken) {
+        return res.status(400).json({ error: 'recaptcha token required' });
+      }
+
+      try {
+        const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${encodeURIComponent(RECAPTCHA_SECRET)}&response=${encodeURIComponent(recaptchaToken)}&remoteip=${encodeURIComponent(ip)}`,
+        });
+        const verifyJson = await verifyRes.json();
+        if (!verifyJson.success) {
+          console.warn('reCAPTCHA failed', verifyJson);
+          return res.status(400).json({ error: 'recaptcha_failed', details: verifyJson });
+        }
+      } catch (e) {
+        console.error('reCAPTCHA verification error', e);
+        return res.status(500).json({ error: 'recaptcha_verification_error' });
+      }
+    } else {
+      console.warn('RECAPTCHA_SECRET not configured — skipping verification');
+    }
+
+    // check IP rate limit
+    const ipCheck = checkAndIncrRate(ipRateMap, ip, MAX_REQUESTS_PER_IP);
+    if (!ipCheck.ok) return res.status(429).json({ error: 'ip_rate_limited' });
+
+    // check email rate limit
+    const emailCheck = checkAndIncrRate(emailRateMap, email.toLowerCase(), MAX_REQUESTS_PER_EMAIL);
+    if (!emailCheck.ok) return res.status(429).json({ error: 'email_rate_limited' });
+
+    // Confirm user exists in PocketBase (server-side) before requesting reset
+    try {
+      const list = await pbServer.collection('users').getList(1, 1, { filter: `email = "${email}"` });
+      if (!list || list.total === 0) {
+        // Do not reveal too much: respond with success-like message but don't send email.
+        return res.json({ success: true, message: 'If an account exists, a reset link will be sent.' });
+      }
+    } catch (e) {
+      console.error('PocketBase user lookup failed', e);
+      // We'll continue with a generic message to avoid leaking errors
+      return res.status(500).json({ error: 'backend_error' });
+    }
+
+    // Request the password reset via the server-side PocketBase client
+    try {
+      await pbServer.collection('users').requestPasswordReset(email);
+      return res.json({ success: true, message: 'Reset email sent (if account exists).' });
+    } catch (err) {
+      console.error('requestPasswordReset failed', err);
+      // Avoid leaking provider errors to clients
+      return res.status(500).json({ error: 'failed_to_send' });
+    }
+  } catch (err) {
+    console.error('request-password-reset server error', err);
+    return res.status(500).json({ error: 'server_error' });
+  }
 });
