@@ -424,8 +424,7 @@ app.post('/api/request-password-reset', async (req, res) => {
     try {
       const list = await pbServer.collection('users').getList(1, 1, { filter: `email = "${email}"` });
       if (!list || list.total === 0) {
-        // Do not reveal too much: respond with success-like message but don't send email.
-        return res.json({ success: true, message: 'If an account exists, a reset link will be sent.' });
+        return res.status(400).json({ error: 'Account does not exist. Please sign up first.' });
       }
     } catch (e) {
       console.error('PocketBase user lookup failed', e);
@@ -436,7 +435,7 @@ app.post('/api/request-password-reset', async (req, res) => {
     // Request the password reset via the server-side PocketBase client
     try {
       await pbServer.collection('users').requestPasswordReset(email);
-      return res.json({ success: true, message: 'Reset email sent (if account exists).' });
+      return res.json({ success: true, message: 'Reset email sent.' });
     } catch (err) {
       console.error('requestPasswordReset failed', err);
       // Avoid leaking provider errors to clients
