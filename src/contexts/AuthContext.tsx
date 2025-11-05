@@ -52,7 +52,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string, remember = true): Promise<any> => {
     const auth = await pb.collection('users').authWithPassword(email, password);
-    setUser(pb.authStore.model ?? null);
+    // ensure the user's email is verified before considering them authenticated
+    const model = pb.authStore.model ?? null;
+    if (model && (model.verified === false || model.verified === 'false')) {
+      // clear auth store and throw so UI can show a helpful message
+      pb.authStore.clear();
+      setUser(null);
+      throw new Error('Please verify your email address before signing in. Check your inbox for the verification link.');
+    }
+    setUser(model);
     return auth;
   };
 
