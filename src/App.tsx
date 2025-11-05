@@ -7,7 +7,6 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from '@/contexts/AuthContext';
 import Login from './pages/Login';
 import VerifyEmail from './pages/VerifyEmail';
-import RequestPasswordReset from './pages/RequestPasswordReset';
 import ResetPassword from './pages/ResetPassword';
 import RequireAuth from '@/components/RequireAuth';
 import Index from "./pages/Index";
@@ -27,7 +26,6 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/request-password-reset" element={<RequestPasswordReset />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes - require authentication */}

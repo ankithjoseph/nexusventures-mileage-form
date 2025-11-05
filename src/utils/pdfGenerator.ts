@@ -280,3 +280,216 @@ export const generatePDF = (data: LogbookData, includeFillableFields: boolean = 
 
   return doc;
 };
+
+export const generateExpensePDF = (formData: any, t?: (key: string) => string) => {
+  const doc: jsPDFWithAutoTable = new jsPDF();
+  const marginLeft = 15;
+  const marginRight = 15;
+  const pageWidth = 210; // A4 width in mm
+  const contentWidth = pageWidth - marginLeft - marginRight;
+
+  let yPos = 15;
+
+  // Add logo
+  try {
+    const logoWidth = 40;
+    const logoHeight = 12;
+    doc.addImage(logoImage, 'PNG', pageWidth - marginRight - logoWidth, yPos, logoWidth, logoHeight);
+  } catch (error) {
+    console.error('Error adding logo to PDF:', error);
+  }
+
+  // Title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('app.title.expense') : 'Expense Report', marginLeft, yPos + 5);
+  yPos += 11;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
+  yPos += 12;
+
+  // Personal Information
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('expense.personal.info') : 'Personal Information', marginLeft, yPos);
+  yPos += 8;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  const personalData = [
+    [t ? t('form.name') : 'Name:', formData.name, t ? t('form.pps') : 'PPS:', formData.pps],
+    ['Email:', formData.email, '', ''],
+    [t ? t('expense.reason') : 'Reason for Trip:', formData.motivo_viaje, '', ''],
+    [t ? t('expense.trip.date') : 'Trip Date:', formData.fecha_viaje, t ? t('expense.origin') : 'Origin:', formData.origen],
+    [t ? t('expense.destination') : 'Destination:', formData.destino, '', '']
+  ];
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: personalData,
+    theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 40 },
+      1: { cellWidth: 50 },
+      2: { fontStyle: 'bold', cellWidth: 35 },
+      3: { cellWidth: 55 }
+    },
+    tableWidth: contentWidth
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+  // Add space before next section
+  yPos += 15;
+
+  // Vehicle Information
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('expense.vehicle.info') : 'Vehicle Information', marginLeft, yPos);
+  yPos += 8;
+
+  const vehicleData = [
+    [t ? t('expense.license') : 'License Plate:', formData.matricula, t ? t('expense.make.model') : 'Make & Model:', formData.marca_modelo],
+    [t ? t('expense.fuel.type') : 'Fuel Type:', formData.tipo_combustible, t ? t('expense.co2').replace(/\u2082/g, '2') : 'CO2 (g/km):', formData.co2_g_km]
+  ];
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: vehicleData,
+    theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 40 },
+      1: { cellWidth: 50 },
+      2: { fontStyle: 'bold', cellWidth: 35 },
+      3: { cellWidth: 55 }
+    },
+    tableWidth: contentWidth
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+  // Mileage
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('expense.mileage.reading') : 'Mileage Reading', marginLeft, yPos);
+  yPos += 8;
+
+  const mileageData = [
+    [t ? t('expense.start.km') : 'Start KM:', formData.km_inicio + ' km', t ? t('expense.end.km') : 'End KM:', formData.km_final + ' km'],
+    [t ? t('expense.business.km') : 'Business KM:', formData.suma_km_trabajo + ' km', '', '']
+  ];
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: mileageData,
+    theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60 },
+      1: { cellWidth: 40 },
+      2: { fontStyle: 'bold', cellWidth: 45 },
+      3: { cellWidth: 35 }
+    },
+    tableWidth: contentWidth
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+  // Expenses
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('expense.expenses') : 'Expenses', marginLeft, yPos);
+  yPos += 8;
+
+  const expensesData = [
+    [t ? t('expense.tolls') : 'Tolls:', '€' + (formData.peajes || '0.00'), t ? t('expense.parking') : 'Parking:', '€' + (formData.parking || '0.00')],
+    [t ? t('expense.fuel') : 'Fuel:', '€' + (formData.combustible || '0.00'), t ? t('expense.meals') : 'Meals:', '€' + (formData.dietas || '0.00')],
+    [t ? t('expense.accommodation') : 'Accommodation:', '€' + (formData.alojamiento || '0.00'), '', '']
+  ];
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: expensesData,
+    theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 35 },
+      1: { cellWidth: 45 },
+      2: { fontStyle: 'bold', cellWidth: 35 },
+      3: { cellWidth: 45 }
+    }
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+
+  // Notes
+  if (formData.notas) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(t ? t('form.notes') : 'Notes', marginLeft, yPos);
+    yPos += 8;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const splitNotes = doc.splitTextToSize(formData.notas, contentWidth);
+    doc.text(splitNotes, marginLeft, yPos);
+    yPos += splitNotes.length * 5 + 10;
+  }
+
+  // Declaration
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('declaration.title') : 'Declaration', marginLeft, yPos);
+  yPos += 8;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const declarationText = t ? t('expense.declaration') : 'I confirm that the above expenses were necessarily incurred in the performance of my duties.';
+  const splitDeclaration = doc.splitTextToSize(declarationText, contentWidth);
+  doc.text(splitDeclaration, marginLeft, yPos);
+  yPos += splitDeclaration.length * 5 + 10;
+
+  // Signature
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t ? t('form.signature') : 'Signature', marginLeft, yPos);
+  yPos += 8;
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: [
+      [t ? t('form.signature') : 'Signature:', formData.firma, t ? t('form.date') : 'Date:', formData.fecha_firma]
+    ],
+    theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 25 },
+      1: { cellWidth: 70, fontStyle: 'italic' },
+      2: { fontStyle: 'bold', cellWidth: 20 },
+      3: { cellWidth: 50 }
+    }
+  });
+
+  // Add page numbers
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const pageNumber = `${i}/${totalPages}`;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.text(pageNumber, pageWidth - 20, pageHeight - 10);
+  }
+
+  return doc;
+};
