@@ -115,7 +115,8 @@ const Login: React.FC = () => {
             });
           }
           const grecaptcha = (window as any).grecaptcha;
-          if (grecaptcha && grecaptcha.execute) {
+          if (grecaptcha && grecaptcha.ready && grecaptcha.execute) {
+            await grecaptcha.ready();
             recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'request_password_reset' });
           }
         } catch (e) {
@@ -131,7 +132,12 @@ const Login: React.FC = () => {
       });
       const json = await resp.json();
       if (!resp.ok) {
-        toast({ title: 'Request failed', description: json?.error || 'Unable to send reset email', variant: 'destructive' });
+        if (resp.status === 404) {
+          toast({ title: 'User not registered', description: 'No account found with this email. Please sign up.', variant: 'destructive' });
+          setMode('signup');
+        } else {
+          toast({ title: 'Request failed', description: json?.error || 'Unable to send reset email', variant: 'destructive' });
+        }
       } else {
         toast({ title: 'Reset email requested', description: json?.message || 'If an account exists, a reset link will be sent.' });
         setMode('login');

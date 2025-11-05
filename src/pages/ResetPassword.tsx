@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +32,10 @@ const ResetPassword: React.FC = () => {
       navigate('/login');
     } catch (err: any) {
       console.error('confirm reset error', err);
-      setError(err?.message || 'Failed to reset password');
+      const message = err?.message || err?.data?.message || 'Failed to reset password';
+      setError(message);
+      // Surface immediate feedback via toast as well
+      toast({ title: 'Reset failed', description: message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -43,7 +46,18 @@ const ResetPassword: React.FC = () => {
       <Card className="w-full max-w-md p-8">
         <h2 className="text-lg font-semibold mb-2">Choose a new password</h2>
         <p className="text-sm text-muted-foreground mb-4">Enter a new password for your account.</p>
-        {error && <div className="text-destructive mb-4">{error}</div>}
+        {error && (
+          <div className="text-destructive mb-4">
+            {error}
+            {/token|expired|invalid|not found/i.test(String(error)) && (
+              <div className="mt-2 text-sm">
+                <Link to="/request-password-reset" className="underline">Request a new reset</Link>
+                {' or '}
+                <Link to="/signup" className="underline">Sign up</Link>
+              </div>
+            )}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="reset-password">New password</Label>
