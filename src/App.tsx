@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from '@/contexts/AuthContext';
 import Login from './pages/Login';
+import VerifyEmail from './pages/VerifyEmail';
 import RequireAuth from '@/components/RequireAuth';
 import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
@@ -23,6 +24,7 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
 
               {/* Protected routes - require authentication */}
               <Route

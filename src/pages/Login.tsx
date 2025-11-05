@@ -16,6 +16,9 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [signupConfirmedEmail, setSignupConfirmedEmail] = useState<string | null>(null);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
@@ -122,7 +125,7 @@ const Login: React.FC = () => {
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <span>Don&apos;t have an account? </span>
-          <Dialog>
+          <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
             <DialogTrigger asChild>
               <button className="text-primary hover:underline font-medium">Sign up</button>
             </DialogTrigger>
@@ -133,7 +136,7 @@ const Login: React.FC = () => {
                 <DialogDescription>Sign up to create a new account. You will receive a verification email — you must verify before signing in.</DialogDescription>
               </DialogHeader>
 
-              <SignupForm />
+              <SignupForm onSuccess={(email?: string) => { setSignupOpen(false); if (email) setSignupConfirmedEmail(email); }} />
 
               <DialogFooter />
             </DialogContent>
@@ -144,7 +147,7 @@ const Login: React.FC = () => {
   );
 };
 
-const SignupForm: React.FC = () => {
+const SignupForm: React.FC<{ onSuccess?: (email?: string) => void }> = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -180,6 +183,10 @@ const SignupForm: React.FC = () => {
       }
 
       toast({ title: 'Verification sent', description: 'Check your email for a verification link before signing in.' });
+      // notify parent so it can close modal and show confirmation UI
+      try {
+        onSuccess?.(email);
+      } catch (e) {}
     } catch (err: any) {
       console.error('Signup error', err);
       toast({ title: 'Signup failed', description: err?.message || 'Unable to create account', variant: 'destructive' });
