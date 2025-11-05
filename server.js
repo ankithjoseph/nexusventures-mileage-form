@@ -372,11 +372,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.listen(port, () => {
-  console.log(`Email server running on port ${port}`);
-});
-
-// Password reset request endpoint with reCAPTCHA and rate-limiting.
 app.post('/api/request-password-reset', async (req, res) => {
   try {
     const { email, recaptchaToken } = req.body || {};
@@ -451,4 +446,8 @@ app.post('/api/request-password-reset', async (req, res) => {
     console.error('request-password-reset server error', err);
     return res.status(500).json({ error: 'server_error' });
   }
+});
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Email server running on port ${port}`);
 });
