@@ -700,8 +700,8 @@ const ExpenseReport = () => {
                 placeholder={t('expense.placeholders.makeModel')}
               />
             </div>
-            <div className="space-y-2">
-              <Label>{t('expense.fuel.type')}</Label>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">{t('expense.fuel.type')}</legend>
               <RadioGroup
                 value={formData.tipo_combustible}
                 onValueChange={(value) => handleFieldChange('tipo_combustible', value)}
@@ -724,7 +724,7 @@ const ExpenseReport = () => {
                   <Label htmlFor="ev">{t('expense.fuelTypes.ev')}</Label>
                 </div>
               </RadioGroup>
-            </div>
+            </fieldset>
             <div className="space-y-2">
               <Label htmlFor="co2_g_km">CO₂ (g/km)</Label>
               <Input

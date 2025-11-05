@@ -30,6 +30,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       <td className="p-2 text-sm font-medium text-muted-foreground align-middle">{rowNumber + 1}</td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-date`}
+          name={`trips[${rowNumber}][date]`}
           type="date"
           value={data.date}
           onChange={(e) => onChange(rowNumber, 'date', e.target.value)}
@@ -38,6 +40,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-from`}
+          name={`trips[${rowNumber}][from]`}
           value={data.from}
           onChange={(e) => onChange(rowNumber, 'from', e.target.value)}
           placeholder={t('placeholders.location')}
@@ -46,6 +50,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-to`}
+          name={`trips[${rowNumber}][to]`}
           value={data.to}
           onChange={(e) => onChange(rowNumber, 'to', e.target.value)}
           placeholder={t('placeholders.location')}
@@ -53,7 +59,7 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
         />
       </td>
       <td className="p-2 align-middle">
-        <Select value={data.purpose} onValueChange={(value) => onChange(rowNumber, 'purpose', value)}>
+        <Select name={`trips[${rowNumber}][purpose]`} value={data.purpose} onValueChange={(value) => onChange(rowNumber, 'purpose', value)}>
           <SelectTrigger className="text-sm ">
             <SelectValue />
           </SelectTrigger>
@@ -65,6 +71,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-odo-start`}
+          name={`trips[${rowNumber}][odo_start]`}
           type="number"
           value={data.odo_start}
           onChange={(e) => onChange(rowNumber, 'odo_start', e.target.value)}
@@ -74,6 +82,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-odo-end`}
+          name={`trips[${rowNumber}][odo_end]`}
           type="number"
           value={data.odo_end}
           onChange={(e) => onChange(rowNumber, 'odo_end', e.target.value)}
@@ -83,6 +93,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-business-km`}
+          name={`trips[${rowNumber}][business_km]`}
           type="number"
           value={data.business_km}
           onChange={(e) => onChange(rowNumber, 'business_km', e.target.value)}
@@ -93,6 +105,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-tolls-parking`}
+          name={`trips[${rowNumber}][tolls_parking]`}
           type="number"
           step="0.01"
           value={data.tolls_parking}
@@ -103,6 +117,8 @@ export const TripRow = ({ rowNumber, data, onChange, onRemoveRow }: TripRowProps
       </td>
       <td className="p-2 align-middle">
         <Input
+          id={`trip-${rowNumber}-notes`}
+          name={`trips[${rowNumber}][notes]`}
           value={data.notes}
           onChange={(e) => onChange(rowNumber, 'notes', e.target.value)}
           placeholder={t('placeholders.notes')}

@@ -92,6 +92,8 @@ const Login: React.FC = () => {
           <div className="flex items-center justify-between">
             <label className="inline-flex items-center space-x-2 cursor-pointer">
               <input 
+                id="remember"
+                name="remember"
                 type="checkbox" 
                 checked={remember} 
                 onChange={(e) => setRemember(e.target.checked)}
