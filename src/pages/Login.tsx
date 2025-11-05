@@ -65,11 +65,13 @@ const Login: React.FC = () => {
             <Label htmlFor="email">Email Address</Label>
             <Input 
               id="email" 
+              name="email"
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               placeholder="you@example.com"
               required 
+              autoComplete="email"
             />
           </div>
 
@@ -77,11 +79,13 @@ const Login: React.FC = () => {
             <Label htmlFor="password">Password</Label>
             <Input 
               id="password" 
+              name="password"
               type="password" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               placeholder="••••••••"
               required 
+              autoComplete="current-password"
             />
           </div>
 

@@ -34,6 +34,7 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
           </Label>
           <Input
             id="signature"
+            name="signature"
             value={data.signature}
             onChange={(e) => onChange('signature', e.target.value)}
             placeholder={t('placeholders.name')}

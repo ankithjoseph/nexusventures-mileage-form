@@ -608,28 +608,34 @@ const ExpenseReport = () => {
               <Label htmlFor="name">{t('form.name')} *</Label>
               <Input
                 id="name"
+                name="name"
                 value={formData.name}
                 onChange={(e) => handleFieldChange('name', e.target.value)}
                 placeholder={t('expense.placeholders.name')}
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">{t('form.email')} *</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleFieldChange('email', e.target.value)}
                 placeholder={t('expense.placeholders.email')}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pps">{t('form.pps')} *</Label>
               <Input
                 id="pps"
+                name="pps"
                 value={formData.pps}
                 onChange={(e) => handleFieldChange('pps', e.target.value)}
                 placeholder={t('expense.placeholders.pps')}
+                autoComplete="off"
               />
             </div>
           </div>

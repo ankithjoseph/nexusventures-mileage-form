@@ -24,7 +24,12 @@ app.use((req, res, next) => {
 });
 
 // Serve static files from dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+// Set a long cache lifetime for static assets (fingerprinted), but ensure the
+// SPA shell (index.html) is never cached by clients or intermediary CDNs so
+// users always get the latest asset manifest after a deploy.
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1y',
+}));
 
 // Handle client-side routing - serve index.html for all non-API routes
 app.get('*', (req, res) => {
@@ -32,6 +37,13 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
+  // Prevent caching of the HTML shell so browsers will revalidate on each
+  // navigation and pick up new asset file names after deployments. This helps
+  // avoid situations where a client has a stale index.html that references
+  // non-existent hashed JS files (which causes MIME-type errors).
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
