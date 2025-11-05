@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import pb from '@/lib/pocketbase';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import nexusLogo from '@/assets/nexus-ventures-logo.png';
 
@@ -16,8 +14,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [signupOpen, setSignupOpen] = useState(false);
-  const [signupConfirmedEmail, setSignupConfirmedEmail] = useState<string | null>(null);
+  // no modal — use standalone signup page
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -125,103 +122,10 @@ const Login: React.FC = () => {
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <span>Don&apos;t have an account? </span>
-          <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
-            <DialogTrigger asChild>
-              <button className="text-primary hover:underline font-medium">Sign up</button>
-            </DialogTrigger>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create an account</DialogTitle>
-                <DialogDescription>Sign up to create a new account. You will receive a verification email — you must verify before signing in.</DialogDescription>
-              </DialogHeader>
-
-              <SignupForm onSuccess={(email?: string) => { setSignupOpen(false); if (email) setSignupConfirmedEmail(email); }} />
-
-              <DialogFooter />
-            </DialogContent>
-          </Dialog>
+          <Link to="/signup" className="text-primary hover:underline font-medium">Sign up</Link>
         </div>
       </Card>
     </div>
-  );
-};
-
-const SignupForm: React.FC<{ onSuccess?: (email?: string) => void }> = ({ onSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSignup = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (password !== passwordConfirm) {
-      toast({ title: 'Passwords do not match', variant: 'destructive' });
-      return;
-    }
-    setLoading(true);
-    try {
-      // create the user record in PocketBase
-      await pb.collection('users').create({
-        email,
-        password,
-        passwordConfirm,
-        name,
-      });
-
-      // request verification email
-      try {
-        // PocketBase JS SDK exposes requestVerification on collection instances
-        // Depending on SDK version this may accept either a string or an object
-        // We'll call it with the email string which the SDK will wrap appropriately.
-        // @ts-ignore
-        await pb.collection('users').requestVerification(email);
-      } catch (reqErr) {
-        // non-fatal: if the SDK doesn't support requestVerification signature, ignore
-        console.warn('requestVerification failed', reqErr);
-      }
-
-      toast({ title: 'Verification sent', description: 'Check your email for a verification link before signing in.' });
-      // notify parent so it can close modal and show confirmation UI
-      try {
-        onSuccess?.(email);
-      } catch (e) {}
-    } catch (err: any) {
-      console.error('Signup error', err);
-      toast({ title: 'Signup failed', description: err?.message || 'Unable to create account', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSignup} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <Label htmlFor="signup-name">Full name</Label>
-        <Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
-        <Input id="signup-email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="signup-password">Password</Label>
-          <Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="signup-password-confirm">Confirm</Label>
-          <Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete="new-password" />
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading} size="sm">
-          {loading ? 'Creating…' : 'Create account'}
-        </Button>
-      </div>
-    </form>
   );
 };
 

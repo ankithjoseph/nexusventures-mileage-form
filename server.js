@@ -7,7 +7,21 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import PocketBase from 'pocketbase';
-import fetch from 'node-fetch';
+
+// Use global fetch when available (Node 18+). If not present, try to dynamically
+// import `node-fetch`. We avoid a static import so the server can run without
+// node-fetch installed if the runtime already provides `fetch`.
+let fetchFn = globalThis.fetch;
+(async () => {
+  if (!fetchFn) {
+    try {
+      const mod = await import('node-fetch');
+      fetchFn = mod.default ?? mod;
+    } catch (e) {
+      console.warn('node-fetch not found and global fetch not available. reCAPTCHA verification will not work.', e);
+    }
+  }
+})();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -380,7 +394,12 @@ app.post('/api/request-password-reset', async (req, res) => {
       }
 
       try {
-        const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        if (!fetchFn) {
+          console.error('No fetch available for reCAPTCHA verification (global fetch missing and node-fetch not installed)');
+          return res.status(500).json({ error: 'fetch_unavailable' });
+        }
+
+        const verifyRes = await fetchFn('https://www.google.com/recaptcha/api/siteverify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `secret=${encodeURIComponent(RECAPTCHA_SECRET)}&response=${encodeURIComponent(recaptchaToken)}&remoteip=${encodeURIComponent(ip)}`,
