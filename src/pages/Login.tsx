@@ -168,18 +168,32 @@ const SignupForm: React.FC = () => {
       });
 
       // request verification email
+      let verificationSent = false;
       try {
-        // PocketBase JS SDK exposes requestVerification on collection instances
-        // Depending on SDK version this may accept either a string or an object
-        // We'll call it with the email string which the SDK will wrap appropriately.
+        // Try common SDK signatures: string email first, then object { email }
         // @ts-ignore
         await pb.collection('users').requestVerification(email);
-      } catch (reqErr) {
-        // non-fatal: if the SDK doesn't support requestVerification signature, ignore
-        console.warn('requestVerification failed', reqErr);
+        verificationSent = true;
+      } catch (reqErr1) {
+        try {
+          // @ts-ignore
+          await pb.collection('users').requestVerification({ email });
+          verificationSent = true;
+        } catch (reqErr2) {
+          console.warn('requestVerification failed (both signatures)', reqErr1, reqErr2);
+        }
       }
 
-      toast({ title: 'Verification sent', description: 'Check your email for a verification link before signing in.' });
+      if (verificationSent) {
+        toast({ title: 'Verification sent', description: 'Check your email for a verification link before signing in.' });
+      } else {
+        // Inform the user and surface likely server-side misconfiguration (SMTP)
+        toast({
+          title: 'Verification not sent',
+          description: 'We were unable to send a verification email. Please contact the administrator or check server SMTP configuration.',
+          variant: 'destructive',
+        });
+      }
     } catch (err: any) {
       console.error('Signup error', err);
       toast({ title: 'Signup failed', description: err?.message || 'Unable to create account', variant: 'destructive' });
