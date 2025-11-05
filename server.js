@@ -451,3 +451,9 @@ app.post('/api/request-password-reset', async (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`Email server running on port ${port}`);
 });
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, exiting gracefully');
+  process.exit(0);
+});
