@@ -116,8 +116,11 @@ const Login: React.FC = () => {
           }
           const grecaptcha = (window as any).grecaptcha;
           if (grecaptcha && grecaptcha.ready && grecaptcha.execute) {
-            await grecaptcha.ready();
-            recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'request_password_reset' });
+            recaptchaToken = await new Promise<string>((resolve, reject) => {
+              grecaptcha.ready(() => {
+                grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'request_password_reset' }).then(resolve).catch(reject);
+              });
+            });
           }
         } catch (e) {
           console.warn('reCAPTCHA load failed', e);
