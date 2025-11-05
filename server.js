@@ -422,7 +422,7 @@ app.post('/api/request-password-reset', async (req, res) => {
 
     // Confirm user exists in PocketBase (server-side) before requesting reset
     try {
-      const list = await pbServer.collection('users').getList(1, 1, { filter: `email = "${email}"` });
+      const list = await pbServer.collection('users').getList(1, 1, { filter: `email = "${email.toLowerCase()}"` });
       if (!list || list.total === 0) {
         return res.status(400).json({ error: 'Account does not exist. Please sign up first.' });
       }
