@@ -17,6 +17,11 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
+// Simple request logger for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
 // Serve static files from dist directory
 // Set a long cache lifetime for static assets (fingerprinted), but ensure the
@@ -321,38 +326,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-const server = app.listen(port, () => {
-  console.log(`Email server running on port ${port} (pid=${process.pid})`);
-});
-
-// Graceful shutdown handlers and better diagnostics for unexpected termination
-process.on('SIGTERM', () => {
-  console.warn('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    console.log('HTTP server closed');
-    process.exit(0);
-  });
-  // Force exit if shutdown takes too long
-  setTimeout(() => {
-    console.error('Forcing shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-});
-
-process.on('SIGINT', () => {
-  console.warn('SIGINT received, shutting down...');
-  server.close(() => process.exit(0));
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-  try {
-    server.close(() => process.exit(1));
-  } catch (e) {
-    process.exit(1);
-  }
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled promise rejection:', reason);
+app.listen(port, () => {
+  console.log(`Email server running on port ${port}`);
 });
