@@ -372,7 +372,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     tableWidth: contentWidth
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 15;
 
   // Mileage
   doc.setFontSize(12);
@@ -400,7 +400,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     tableWidth: contentWidth
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 15;
 
   // Expenses
   doc.setFontSize(12);
@@ -428,7 +428,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     }
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 15;
 
   // Notes
   if (formData.notas) {
