@@ -29,8 +29,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    // If a session-based auth token was stored (user chose "remember me" = false),
+    // restore it into the SDK authStore so page reloads during the same tab keep the session.
+    try {
+      const session = sessionStorage.getItem('pb_auth_session');
+      if (session) {
+        const parsed = JSON.parse(session);
+        if (parsed?.token) {
+          // restore into the SDK's auth store (this updates in-memory state)
+          // @ts-ignore
+          pb.authStore.save(parsed.token, parsed.record ?? null);
+        }
+      }
+    } catch (e) {
+      // ignore session restore errors
+      console.warn('Failed to restore session auth', e);
+    }
+
     // run once immediately to hydrate
     handler();
+
+    // Attempt to refresh the auth token if the SDK believes the store is valid.
+    (async () => {
+      try {
+        // @ts-ignore
+        if (pb.authStore?.isValid) {
+          await pb.collection('users').authRefresh();
+          // update local state from refreshed store
+          handler();
+        }
+      } catch (e) {
+        // refresh failed -> clear auth state
+        try {
+          pb.authStore.clear();
+        } catch (er) {}
+        handler();
+      }
+    })();
 
     const authStoreAny = pb.authStore as any;
     if (typeof authStoreAny.onChange === 'function') {
@@ -60,12 +95,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       throw new Error('Please verify your email address before signing in. Check your inbox for the verification link.');
     }
+    // If the user chose not to 'remember' the login, store auth in sessionStorage
+    // and remove the persistent local store (so the login lasts for this tab/session only).
+    try {
+      if (!remember) {
+        const token = pb.authStore.token;
+        const record = pb.authStore.model ?? null;
+        sessionStorage.setItem('pb_auth_session', JSON.stringify({ token, record }));
+        try {
+          // remove the SDK's persistent local storage key to avoid cross-session persistence
+          localStorage.removeItem('pb_auth');
+        } catch (e) {
+          // ignore if localStorage is not available
+        }
+      } else {
+        // ensure any session key is cleared when remembering between sessions
+        try {
+          sessionStorage.removeItem('pb_auth_session');
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('Failed to persist auth preference', e);
+    }
+
     setUser(model);
     return auth;
   };
 
   const logout = () => {
     pb.authStore.clear();
+    try {
+      sessionStorage.removeItem('pb_auth_session');
+    } catch (e) {}
     setUser(null);
   };
 
