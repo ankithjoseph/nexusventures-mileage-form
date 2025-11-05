@@ -1,0 +1,65 @@
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import pb from '@/lib/pocketbase';
+
+const ResetPassword: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [token, setToken] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = searchParams.get('token');
+    setToken(t);
+  }, [searchParams]);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!token) return setError('Missing token');
+    if (password !== passwordConfirm) return setError('Passwords do not match');
+    setLoading(true);
+    try {
+      await pb.collection('users').confirmPasswordReset(token, password, passwordConfirm);
+      toast({ title: 'Password reset', description: 'Your password has been updated. You can now sign in.' });
+      navigate('/login');
+    } catch (err: any) {
+      console.error('confirm reset error', err);
+      setError(err?.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <Card className="w-full max-w-md p-8">
+        <h2 className="text-lg font-semibold mb-2">Choose a new password</h2>
+        <p className="text-sm text-muted-foreground mb-4">Enter a new password for your account.</p>
+        {error && <div className="text-destructive mb-4">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="reset-password">New password</Label>
+            <Input id="reset-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reset-password-confirm">Confirm password</Label>
+            <Input id="reset-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete="new-password" />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={loading}>{loading ? 'Updating…' : 'Update password'}</Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+};
+
+export default ResetPassword;

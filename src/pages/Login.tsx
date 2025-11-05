@@ -106,7 +106,7 @@ const Login: React.FC = () => {
               />
               <span className="text-sm text-muted-foreground">Remember me</span>
             </label>
-            <a className="text-sm text-primary hover:underline" href="#">
+            <a className="text-sm text-primary hover:underline" href="/request-password-reset">
               Forgot password?
             </a>
           </div>
