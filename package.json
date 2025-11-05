@@ -10,7 +10,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "node server.js"
+    "server": "node server.js",
+    "start": "node server.js",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
