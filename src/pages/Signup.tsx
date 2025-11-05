@@ -17,16 +17,37 @@ const SignupPage: React.FC = () => {
 
 	const handleSignup = async (e?: React.FormEvent) => {
 		e?.preventDefault();
+
+		// Ensure name is provided
+		if (!name || !name.trim()) {
+			toast({ title: 'Name required', description: 'Please enter your full name', variant: 'destructive' });
+			return;
+		}
 		if (password !== passwordConfirm) {
 			toast({ title: 'Passwords do not match', variant: 'destructive' });
+			return;
+		}
+
+		// Basic client-side email validation
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			toast({ title: 'Invalid email', description: 'Please enter a valid email address', variant: 'destructive' });
 			return;
 		}
 		setLoading(true);
 		try {
 			await pb.collection('users').create({ email, password, passwordConfirm, name });
+
+			// PocketBase client may or may not expose `requestVerification` on the
+			// client SDK depending on versions and config. Call it only if present
+			// to avoid runtime/type errors.
 			try {
-				// @ts-ignore
-				await pb.collection('users').requestVerification(email);
+				const usersColl: any = pb.collection('users');
+				if (usersColl && typeof usersColl.requestVerification === 'function') {
+					await usersColl.requestVerification(email);
+				} else {
+					console.warn('pb.collection("users").requestVerification not available; skipping explicit verification request');
+				}
 			} catch (reqErr) {
 				console.warn('requestVerification failed', reqErr);
 			}
@@ -49,7 +70,7 @@ const SignupPage: React.FC = () => {
 				<form onSubmit={handleSignup} className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="signup-name">Full name</Label>
-						<Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
+						<Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required aria-required="true" />
 					</div>
 
 					<div className="space-y-2">
