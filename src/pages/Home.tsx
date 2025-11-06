@@ -35,18 +35,17 @@ const Home = () => {
       {/* Forms Gallery */}
       <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-primary mb-4">Business Forms</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Choose the form you need to complete your business compliance requirements
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+  <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
           {forms.map((form, index) => {
             const IconComponent = form.icon;
             return (
-              <Card key={index} className={`transition-all duration-300 ${form.color} border-2`}>
-                <CardHeader className="text-center pb-4">
+              <Card key={index} className={`transition-all duration-300 ${form.color} border-2 h-full flex flex-col`}>
+                <CardHeader className="text-center pb-4 flex-1">
                   <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-sm ${form.iconColor}`}>
                     <IconComponent className="w-8 h-8" />
                   </div>
@@ -55,7 +54,7 @@ const Home = () => {
                     {form.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="text-center">
+                <CardContent className="text-center mt-auto">
                   <Button asChild size="lg" className="w-full">
                     <Link to={form.path}>
                       Access Form
@@ -75,7 +74,6 @@ const Home = () => {
             <div className="flex items-center gap-2">
               <img
                 src={nexusLogo}
-                alt="Nexus Ventures"
                 className="h-8 w-auto object-contain"
               />
               <span className="font-semibold">Nexus Ventures</span>
