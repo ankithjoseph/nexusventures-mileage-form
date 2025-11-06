@@ -12,7 +12,7 @@ import ResetPassword from './pages/ResetPassword';
 import RequireAuth from '@/components/RequireAuth';
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
-import Home from "./pages/Home";
+import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,14 +31,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes - require authentication */}
-              <Route
-                path="/"
-                element={
-                  <RequireAuth>
-                    <Home />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/" element={<ExternalRedirect url="https://www.nexusventures.eu" />} />
               <Route
                 path="/expense-report"
                 element={

@@ -47,6 +47,45 @@ const ipRateMap = new Map(); // ip -> { count, firstAt }
 const POCKETBASE_URL = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090';
 const pbServer = new PocketBase(POCKETBASE_URL);
 
+// Frontend origin (optional) - if set, only allow referrers that match this origin when a full URL
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '';
+
+// Sanitizer for referrer values. We prefer storing only safe pathnames (e.g. "/mileage-book").
+// Rules:
+// - If input is a full URL, only accept it if it matches FRONTEND_ORIGIN (if configured).
+// - If input is a path (starts with "/"), accept after stripping unsafe characters.
+// - If input looks like a bare path without leading slash, normalize by prepending '/'.
+// - On any validation failure, return '/'. Limit length to 200 chars.
+function sanitizeReferrer(raw) {
+  if (!raw || typeof raw !== 'string') return '/';
+  let v = raw.trim();
+
+  // If it's a full URL, ensure it matches configured frontend origin
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const u = new URL(v);
+      if (FRONTEND_ORIGIN) {
+        const allowed = new URL(FRONTEND_ORIGIN).origin;
+        if (u.origin !== allowed) return '/';
+      } else {
+        // no FRONTEND_ORIGIN configured — we don't accept full URLs by default
+        return '/';
+      }
+      v = u.pathname + (u.search || '');
+    } catch (e) {
+      return '/';
+    }
+  }
+
+  // Normalize bare paths (e.g., 'mileage-book' -> '/mileage-book')
+  if (!v.startsWith('/')) v = '/' + v;
+
+  // Keep only safe URL chars (RFC3986 subset) to avoid injections
+  const safe = v.replace(/[^A-Za-z0-9\-._~\/\?\#\&\=\%\,]/g, '');
+  if (!safe || safe.length > 200) return '/';
+  return safe;
+}
+
 // Helper to check & increment rate limits; returns { ok: boolean, reason?: string }
 function checkAndIncrRate(map, key, max) {
   const now = Date.now();
@@ -374,7 +413,7 @@ app.get('/health', (req, res) => {
 
 app.post('/api/request-password-reset', async (req, res) => {
   try {
-    const { email, recaptchaToken } = req.body || {};
+    const { email, recaptchaToken, referrer } = req.body || {};
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
 
     if (!email) {
@@ -426,6 +465,17 @@ app.post('/api/request-password-reset', async (req, res) => {
       if (!list || list.total === 0) {
         return res.status(400).json({ error: 'Account does not exist. Please sign up first.' });
       }
+      // if a referrer was provided, persist it on the user record so email templates
+      // can include it (PocketBase email templates can reference user fields).
+      try {
+        const user = list.items && list.items[0];
+        if (user && referrer) {
+          const clean = sanitizeReferrer(referrer);
+          await pbServer.collection('users').update(user.id, { pending_referrer: String(clean) });
+        }
+      } catch (updErr) {
+        console.warn('Failed to persist pending_referrer on user record', updErr);
+      }
     } catch (e) {
       console.error('PocketBase user lookup failed', e);
       // We'll continue with a generic message to avoid leaking errors
@@ -443,6 +493,43 @@ app.post('/api/request-password-reset', async (req, res) => {
     }
   } catch (err) {
     console.error('request-password-reset server error', err);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// Endpoint to request verification email with an optional referrer persisted on the user record
+app.post('/api/request-verification', async (req, res) => {
+  try {
+    const { email, referrer } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'email required' });
+
+    // Find user
+    try {
+      const list = await pbServer.collection('users').getList(1, 1, { filter: `email = "${email.toLowerCase()}"` });
+      if (!list || list.total === 0) {
+        return res.status(400).json({ error: 'Account does not exist. Please sign up first.' });
+      }
+
+      // Persist referrer if present
+      try {
+        const user = list.items && list.items[0];
+        if (user && referrer) {
+          const clean = sanitizeReferrer(referrer);
+          await pbServer.collection('users').update(user.id, { pending_referrer: String(clean) });
+        }
+      } catch (updErr) {
+        console.warn('Failed to persist pending_referrer on user record', updErr);
+      }
+
+      // Request verification email via PocketBase
+      await pbServer.collection('users').requestVerification(email);
+      return res.json({ success: true, message: 'Verification email requested.' });
+    } catch (e) {
+      console.error('PocketBase user lookup or verification failed', e);
+      return res.status(500).json({ error: 'backend_error' });
+    }
+  } catch (err) {
+    console.error('request-verification server error', err);
     return res.status(500).json({ error: 'server_error' });
   }
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import pb from '@/lib/pocketbase';
 import { toast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,11 +31,15 @@ const VerifyEmail: React.FC = () => {
         }
 
         toast({ title: 'Email verified', description: 'Your email was verified. You can now sign in.' });
-        // if authStore is valid, navigate to dashboard; otherwise to login
+        // determine fallback referrer: prefer explicit state (if present) then stored value
+        const fallback = (location.state as any)?.from?.pathname || localStorage.getItem('auth_referrer') || '/';
+        try { localStorage.removeItem('auth_referrer'); } catch (e) { /* ignore */ }
+
+        // if user is authenticated, send them back to the original referrer; otherwise pass referrer to login
         if ((pb.authStore as any).isValid) {
-          navigate('/', { replace: true });
+          navigate(fallback, { replace: true });
         } else {
-          navigate('/login', { replace: true });
+          navigate('/login', { replace: true, state: { from: { pathname: fallback } } });
         }
       } catch (err: any) {
         console.error('verify error', err);
