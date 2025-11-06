@@ -31,6 +31,22 @@ const Login: React.FC = () => {
 
   const from = (location.state as any)?.from?.pathname || '/';
 
+  // When the user switches to signup mode (either via the UI or programmatically),
+  // persist an intended post-verification redirect so VerifyEmail can redirect
+  // them back to the page they originally attempted to access.
+  useEffect(() => {
+    if (mode !== 'signup') return;
+    try {
+      const params = new URLSearchParams(location.search);
+      const returnTo = params.get('returnTo') || (location.state as any)?.from?.pathname || '/';
+      if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+        localStorage.setItem('post_verify_redirect', JSON.stringify({ path: returnTo, ts: Date.now() }));
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [mode, location]);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -85,22 +101,19 @@ const Login: React.FC = () => {
       toast({ title: 'Invalid email', description: 'Please enter a valid email address', variant: 'destructive' });
       return;
     }
-  // store where the user started from so we can return them after verifying their email
-  try { localStorage.setItem('auth_referrer', (location.state as any)?.from?.pathname || location.pathname || '/'); } catch (e) { /* ignore */ }
-  setLoading(true);
+    setLoading(true);
     try {
       await pb.collection('users').create({ email, password, passwordConfirm, name });
-        try {
-          // Use server endpoint so we can persist referrer on the user record and include it in the
-          // verification email template (server will call PocketBase.requestVerification).
-          await fetch('/api/request-verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, referrer: localStorage.getItem('auth_referrer') || (location.state as any)?.from?.pathname || location.pathname || '/' }),
-          });
-        } catch (reqErr) {
-          console.warn('requestVerification failed', reqErr);
+      try {
+        const usersColl: any = pb.collection('users');
+        if (usersColl && typeof usersColl.requestVerification === 'function') {
+          await usersColl.requestVerification(email);
+        } else {
+          console.warn('pb.collection("users").requestVerification not available; skipping explicit verification request');
         }
+      } catch (reqErr) {
+        console.warn('requestVerification failed', reqErr);
+      }
       toast({ title: 'Verification sent', description: 'Check your email for a verification link before signing in.' });
       setMode('login');
     } catch (err: any) {
@@ -113,9 +126,7 @@ const Login: React.FC = () => {
 
   const handleReset = async (e?: React.FormEvent) => {
     e?.preventDefault();
-  // record where the user initiated the reset so the reset page can return them there after completing
-  try { localStorage.setItem('auth_referrer', (location.state as any)?.from?.pathname || location.pathname || '/'); } catch (e) { /* ignore */ }
-  setLoading(true);
+    setLoading(true);
     try {
       // Get reCAPTCHA token (if configured)
       let recaptchaToken: string | undefined;
@@ -144,7 +155,7 @@ const Login: React.FC = () => {
       const resp = await fetch('/api/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail, recaptchaToken, referrer: localStorage.getItem('auth_referrer') || (location.state as any)?.from?.pathname || location.pathname || '/' }),
+        body: JSON.stringify({ email: resetEmail, recaptchaToken }),
       });
       const json = await resp.json();
       if (!resp.ok) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import pb from '@/lib/pocketbase';
 import { toast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,15 +30,59 @@ const VerifyEmail: React.FC = () => {
         }
 
         toast({ title: 'Email verified', description: 'Your email was verified. You can now sign in.' });
-        // determine fallback referrer: prefer explicit state (if present) then stored value
-        const fallback = (location.state as any)?.from?.pathname || localStorage.getItem('auth_referrer') || '/';
-        try { localStorage.removeItem('auth_referrer'); } catch (e) { /* ignore */ }
 
-        // if user is authenticated, send them back to the original referrer; otherwise pass referrer to login
-        if ((pb.authStore as any).isValid) {
-          navigate(fallback, { replace: true });
+        // Determine a safe redirect target. Prefer an explicit `returnTo` query
+        // param (e.g. /verify?token=...&returnTo=/expense-report), then fall back
+        // to a stored post-verification redirect (set by the signup page).
+        const isSafePath = (p: string | null | undefined) => {
+          if (!p || typeof p !== 'string') return false;
+          // must be an internal path (starts with single slash), no protocol
+          if (!p.startsWith('/')) return false;
+          if (p.startsWith('//')) return false;
+          if (p.includes('://')) return false;
+          return true;
+        };
+
+        const explicitReturn = searchParams.get('returnTo');
+        let redirectTo: string | null = null;
+        if (isSafePath(explicitReturn)) {
+          redirectTo = explicitReturn;
         } else {
-          navigate('/login', { replace: true, state: { from: { pathname: fallback } } });
+          try {
+            const raw = localStorage.getItem('post_verify_redirect');
+            if (raw) {
+              const parsed = JSON.parse(raw as string);
+              const p = parsed?.path;
+              const ts = parsed?.ts;
+              const now = Date.now();
+              const TTL = 5 * 60 * 1000; // 5 minutes
+              // only honor the stored redirect if it's recent (within TTL)
+              if (typeof ts === 'number' && now - ts <= TTL && isSafePath(p)) {
+                redirectTo = p;
+              } else {
+                // expired or invalid -> remove it
+                try {
+                  localStorage.removeItem('post_verify_redirect');
+                } catch (e) {}
+              }
+            }
+          } catch (e) {
+            // ignore parse/localStorage errors
+          }
+        }
+
+        if (redirectTo) {
+          try {
+            localStorage.removeItem('post_verify_redirect');
+          } catch (e) {}
+          navigate(redirectTo, { replace: true });
+        } else {
+          // if authStore is valid, navigate to dashboard; otherwise to login
+          if ((pb.authStore as any).isValid) {
+            navigate('/', { replace: true });
+          } else {
+            navigate('/login', { replace: true });
+          }
         }
       } catch (err: any) {
         console.error('verify error', err);

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,21 @@ const SignupPage: React.FC = () => {
 	const [name, setName] = useState('');
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
+	const location = useLocation();
+
+	// Persist an intended post-verification redirect so the VerifyEmail page
+	// can send the user back after they confirm their email.
+	useEffect(() => {
+		try {
+			const params = new URLSearchParams(location.search);
+			const returnTo = params.get('returnTo') || (location.state as any)?.from;
+			if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+				localStorage.setItem('post_verify_redirect', JSON.stringify({ path: returnTo, ts: Date.now() }));
+			}
+		} catch (e) {
+			// ignore localStorage or parsing errors
+		}
+	}, [location]);
 
 	const handleSignup = async (e?: React.FormEvent) => {
 		e?.preventDefault();
@@ -52,6 +68,9 @@ const SignupPage: React.FC = () => {
 				console.warn('requestVerification failed', reqErr);
 			}
 			toast({ title: 'Verification sent', description: 'Check your email for a verification link before signing in.' });
+			// keep navigating to login (user must verify before signing in). The
+			// post-verification redirect is stored in localStorage by the effect
+			// above and will be used by the VerifyEmail page.
 			navigate('/login');
 		} catch (err: any) {
 			console.error('Signup error', err);

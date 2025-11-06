@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,6 @@ import pb from '@/lib/pocketbase';
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -29,13 +28,8 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
     try {
       await pb.collection('users').confirmPasswordReset(token, password, passwordConfirm);
-  toast({ title: 'Password reset', description: 'Your password has been updated. You can now sign in.' });
-  // prefer a referrer passed via location.state, otherwise use stored referrer from when the reset was requested
-  const fallback = (location.state as any)?.from?.pathname || localStorage.getItem('auth_referrer') || '/';
-  // clear stored referrer now that it's consumed
-  try { localStorage.removeItem('auth_referrer'); } catch (e) { /* ignore */ }
-  // navigate to login and pass the original referrer so login can redirect after sign-in
-  navigate('/login', { replace: true, state: { from: { pathname: fallback } } });
+      toast({ title: 'Password reset', description: 'Your password has been updated. You can now sign in.' });
+      navigate('/login');
     } catch (err: any) {
       console.error('confirm reset error', err);
       const message = err?.message || err?.data?.message || 'Failed to reset password';
