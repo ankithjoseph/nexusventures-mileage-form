@@ -12,15 +12,8 @@ import ResetPassword from './pages/ResetPassword';
 import RequireAuth from '@/components/RequireAuth';
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
-
-// Redirect component for external URLs
-const ExternalRedirect = ({ to }: { to: string }) => {
-  React.useEffect(() => {
-    window.location.href = to;
-  }, [to]);
-  return null;
-};
 
 const queryClient = new QueryClient();
 
@@ -40,7 +33,11 @@ const App = () => (
               {/* Protected routes - require authentication */}
               <Route
                 path="/"
-                element={<ExternalRedirect to="https://www.nexusventures.eu" />}
+                element={
+                  <RequireAuth>
+                    <Home />
+                  </RequireAuth>
+                }
               />
               <Route
                 path="/expense-report"
