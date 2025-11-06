@@ -447,12 +447,31 @@ app.post('/api/request-password-reset', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Email server running on port ${port}`);
 });
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, exiting gracefully');
-  process.exit(0);
-});
+const gracefulShutdown = (signal) => {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  
+  server.close((err) => {
+    if (err) {
+      console.error('Error during server shutdown:', err);
+      process.exit(1);
+    }
+    
+    console.log('Server closed successfully');
+    process.exit(0);
+  });
+  
+  // Force close after 10 seconds
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+// Handle Docker container stop (SIGTERM) and development stop (SIGINT)
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
