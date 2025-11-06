@@ -36,6 +36,16 @@ const SepaDd: React.FC = () => {
     }
   };
 
+  const handlePrintPreview = () => {
+    try {
+      const payload = { name, address, iban, bic, creditor, mandateRef, signatureDate };
+      localStorage.setItem('sepa_dd_print', JSON.stringify(payload));
+      window.open('/sepa-dd/print', '_blank');
+    } catch (e) {
+      toast({ title: 'Print preview failed', description: 'Unable to open print preview', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <Card className="w-full max-w-3xl p-8">
@@ -84,7 +94,10 @@ const SepaDd: React.FC = () => {
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit SEPA mandate'}</Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={handlePrintPreview}>Print preview</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit SEPA mandate'}</Button>
+            </div>
           </div>
         </form>
       </Card>

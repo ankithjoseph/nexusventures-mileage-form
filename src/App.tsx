@@ -13,6 +13,7 @@ import RequireAuth from '@/components/RequireAuth';
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
 import SepaDd from "./pages/SepaDd";
+import SepaDdPrint from "./pages/SepaDdPrint";
 import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,19 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <SepaDd />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/sepa-dd/print"
+                element={
+                  <RequireAuth>
+                    <React.Suspense>
+                      <React.Fragment>
+                        {/* SepaDdPrint dynamically imported to keep bundle small */}
+                        <SepaDdPrint />
+                      </React.Fragment>
+                    </React.Suspense>
                   </RequireAuth>
                 }
               />
