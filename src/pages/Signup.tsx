@@ -17,6 +17,10 @@ const SignupPage: React.FC = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
 
+	// Disable browser autofill for the standalone signup page.
+	const formAutoComplete = 'off';
+	const inputAutoComplete = 'off';
+
 	// Persist an intended post-verification redirect so the VerifyEmail page
 	// can send the user back after they confirm their email.
 	useEffect(() => {
@@ -86,25 +90,25 @@ const SignupPage: React.FC = () => {
 				<h1 className="text-2xl font-bold mb-4">Create an account</h1>
 				<p className="text-sm text-muted-foreground mb-6">Sign up to create a new account. You will receive a verification email — you must verify before signing in.</p>
 
-				<form onSubmit={handleSignup} className="space-y-4">
+				<form onSubmit={handleSignup} className="space-y-4" autoComplete={formAutoComplete}>
 					<div className="space-y-2">
 						<Label htmlFor="signup-name">Full name</Label>
-						<Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required aria-required="true" />
+						<Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required aria-required="true" autoComplete={inputAutoComplete} />
 					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="signup-email">Email</Label>
-						<Input id="signup-email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+						<Input id="signup-email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete={inputAutoComplete} />
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-2">
 							<Label htmlFor="signup-password">Password</Label>
-							<Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
+							<Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={inputAutoComplete} />
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="signup-password-confirm">Confirm</Label>
-							<Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete="new-password" />
+							<Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete={inputAutoComplete} />
 						</div>
 					</div>
 

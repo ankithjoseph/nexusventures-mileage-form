@@ -177,6 +177,11 @@ const Login: React.FC = () => {
     }
   };
 
+  // Autocomplete values depending on mode. Disable autofill for the login mode.
+  const formAutoComplete = mode === 'login' ? 'off' : 'on';
+  const emailAutoComplete = mode === 'login' ? 'off' : 'email';
+  const passwordAutoComplete = mode === 'login' ? 'off' : 'new-password';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted px-4">
       <Card className="w-full max-w-md p-8 shadow-xl border-border/50">
@@ -194,7 +199,7 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        <form onSubmit={mode === 'login' ? handleSubmit : mode === 'signup' ? handleSignup : handleReset} className="space-y-5">
+  <form onSubmit={mode === 'login' ? handleSubmit : mode === 'signup' ? handleSignup : handleReset} className="space-y-5" autoComplete={formAutoComplete}>
           {mode === 'signup' && (
             <div className="space-y-2">
               <Label htmlFor="signup-name">Full name</Label>
@@ -212,7 +217,7 @@ const Login: React.FC = () => {
               onChange={(e) => mode === 'reset' ? setResetEmail(e.target.value) : setEmail(e.target.value)} 
               placeholder="you@example.com"
               required 
-              autoComplete="email"
+              autoComplete={emailAutoComplete}
             />
           </div>
 
@@ -220,11 +225,11 @@ const Login: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Password</Label>
-                <Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
+                <Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={passwordAutoComplete} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-password-confirm">Confirm</Label>
-                <Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete="new-password" />
+                <Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete={passwordAutoComplete} />
               </div>
             </div>
           )}
@@ -232,16 +237,16 @@ const Login: React.FC = () => {
           {mode === 'login' && (
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                name="password"
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="••••••••"
-                required 
-                autoComplete="current-password"
-              />
+                <Input 
+                  id="password" 
+                  name="password"
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="••••••••"
+                  required 
+                  autoComplete={passwordAutoComplete}
+                />
             </div>
           )}
 
