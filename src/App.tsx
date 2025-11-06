@@ -12,6 +12,7 @@ import ResetPassword from './pages/ResetPassword';
 import RequireAuth from '@/components/RequireAuth';
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
+import SepaDd from "./pages/SepaDd";
 import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +46,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <MileageBook />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/sepa-dd"
+                element={
+                  <RequireAuth>
+                    <SepaDd />
                   </RequireAuth>
                 }
               />
