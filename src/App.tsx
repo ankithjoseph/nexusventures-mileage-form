@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from '@/contexts/AuthContext';
+import React from 'react';
 import Login from './pages/Login';
 import VerifyEmail from './pages/VerifyEmail';
 import ResetPassword from './pages/ResetPassword';
@@ -14,6 +15,14 @@ import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+
+// Redirect component for external URLs
+const ExternalRedirect = ({ to }: { to: string }) => {
+  React.useEffect(() => {
+    window.location.href = to;
+  }, [to]);
+  return null;
+};
 
 const queryClient = new QueryClient();
 
@@ -33,11 +42,7 @@ const App = () => (
               {/* Protected routes - require authentication */}
               <Route
                 path="/"
-                element={
-                  <RequireAuth>
-                    <Home />
-                  </RequireAuth>
-                }
+                element={<ExternalRedirect to="https://www.nexusventures.eu" />}
               />
               <Route
                 path="/expense-report"
