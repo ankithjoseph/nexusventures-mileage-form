@@ -13,7 +13,6 @@ import RequireAuth from '@/components/RequireAuth';
 import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
-import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 // Redirect component for external URLs
