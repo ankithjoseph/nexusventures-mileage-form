@@ -11,6 +11,8 @@ import ResetPassword from './pages/ResetPassword';
 import RequireAuth from '@/components/RequireAuth';
 import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
+import MileageBook from "./pages/MileageBook";
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +35,7 @@ const App = () => (
                 path="/"
                 element={
                   <RequireAuth>
-                    <Index />
+                    <Home />
                   </RequireAuth>
                 }
               />
@@ -42,6 +44,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <ExpenseReport />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/mileage-book"
+                element={
+                  <RequireAuth>
+                    <MileageBook />
                   </RequireAuth>
                 }
               />

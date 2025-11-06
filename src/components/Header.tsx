@@ -24,6 +24,9 @@ export const Header = () => {
     if (location.pathname === '/expense-report') {
       return t('app.title.expense');
     }
+    if (location.pathname === '/') {
+      return t('app.title');
+    }
     return t('app.title.mileage');
   };
 
@@ -48,30 +51,6 @@ export const Header = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <nav className="flex gap-4">
-              <Link
-                to="/"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname === "/"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-primary"
-                }`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                {t('nav.mileage')}
-              </Link>
-              <Link
-                to="/expense-report"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname === "/expense-report"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-primary"
-                }`}
-              >
-                <Receipt className="w-4 h-4 inline mr-2" />
-                {t('nav.expense')}
-              </Link>
-            </nav>
             <div className="flex items-center gap-2">
               <Button
                 onClick={toggleLanguage}
