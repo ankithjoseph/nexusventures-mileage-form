@@ -51,9 +51,9 @@ const ResetPassword: React.FC = () => {
             {error}
             {/token|expired|invalid|not found/i.test(String(error)) && (
               <div className="mt-2 text-sm">
-                <Link to="/request-password-reset" className="underline">Request a new reset</Link>
+                <Link to="/login" className="underline">Request a new reset</Link>
                 {' or '}
-                <Link to="/signup" className="underline">Sign up</Link>
+                <Link to="/login" className="underline">Sign up</Link>
               </div>
             )}
           </div>

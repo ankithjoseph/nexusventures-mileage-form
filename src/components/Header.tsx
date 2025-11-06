@@ -73,6 +73,7 @@ export const Header = () => {
 const AuthButtons = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (user) {
     const userEmail = user?.email ?? user?.username ?? 'User';
@@ -80,7 +81,7 @@ const AuthButtons = () => {
 
     const handleLogout = () => {
       logout();
-      navigate('/login');
+      navigate('/login', { state: { from: location } });
     };
 
     return (

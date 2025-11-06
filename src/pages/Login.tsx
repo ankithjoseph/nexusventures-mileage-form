@@ -38,6 +38,19 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate, from]);
 
+  // Load reCAPTCHA script when switching to reset mode
+  useEffect(() => {
+    if (mode === 'reset') {
+      const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+      if (RECAPTCHA_SITE_KEY && !(window as any).grecaptcha) {
+        const s = document.createElement('script');
+        s.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+        s.async = true;
+        document.head.appendChild(s);
+      }
+    }
+  }, [mode]);
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLoading(true);
@@ -99,21 +112,11 @@ const Login: React.FC = () => {
     e?.preventDefault();
     setLoading(true);
     try {
-      // Load reCAPTCHA and get token (if configured)
+      // Get reCAPTCHA token (if configured)
       let recaptchaToken: string | undefined;
       const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
       if (RECAPTCHA_SITE_KEY) {
         try {
-          if (!(window as any).grecaptcha) {
-            await new Promise<void>((resolve, reject) => {
-              const s = document.createElement('script');
-              s.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-              s.async = true;
-              s.onload = () => resolve();
-              s.onerror = () => reject(new Error('Failed to load reCAPTCHA'));
-              document.head.appendChild(s);
-            });
-          }
           const grecaptcha = (window as any).grecaptcha;
           if (grecaptcha && grecaptcha.ready && grecaptcha.execute) {
             recaptchaToken = await new Promise<string>((resolve, reject) => {
@@ -121,9 +124,14 @@ const Login: React.FC = () => {
                 grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'request_password_reset' }).then(resolve).catch(reject);
               });
             });
+          } else {
+            throw new Error('reCAPTCHA not loaded');
           }
         } catch (e) {
-          console.warn('reCAPTCHA load failed', e);
+          console.warn('reCAPTCHA execution failed', e);
+          toast({ title: 'Verification failed', description: 'Please try again in a moment.', variant: 'destructive' });
+          setLoading(false);
+          return;
         }
       }
 

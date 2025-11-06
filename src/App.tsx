@@ -10,7 +10,6 @@ import Login from './pages/Login';
 import VerifyEmail from './pages/VerifyEmail';
 import ResetPassword from './pages/ResetPassword';
 import RequireAuth from '@/components/RequireAuth';
-import Index from "./pages/Index";
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
 import NotFound from "./pages/NotFound";
