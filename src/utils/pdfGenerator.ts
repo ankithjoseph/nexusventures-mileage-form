@@ -463,9 +463,8 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   const declarationText = t ? t('expense.declaration') : 'I confirm that the above expenses were necessarily incurred in the performance of my duties.';
   const splitDeclaration = doc.splitTextToSize(declarationText, contentWidth);
   doc.text(splitDeclaration, marginLeft, yPos);
-  yPos += splitDeclaration.length * 5 + 10;
-    // Add space before next section
-  yPos += 15;
+  yPos += splitDeclaration.length * 5 + 20;
+
 
   // Signature
   doc.setFontSize(12);
