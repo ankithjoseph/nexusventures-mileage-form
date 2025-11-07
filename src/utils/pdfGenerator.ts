@@ -372,7 +372,9 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     tableWidth: contentWidth
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 15;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+    // Add space before next section
+  yPos += 15;
 
   // Mileage
   doc.setFontSize(12);
@@ -400,7 +402,9 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     tableWidth: contentWidth
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 15;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+    // Add space before next section
+  yPos += 15;
 
   // Expenses
   doc.setFontSize(12);
@@ -428,7 +432,9 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     }
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 15;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+    // Add space before next section
+  yPos += 15;
 
   // Notes
   if (formData.notas) {
@@ -442,6 +448,8 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     const splitNotes = doc.splitTextToSize(formData.notas, contentWidth);
     doc.text(splitNotes, marginLeft, yPos);
     yPos += splitNotes.length * 5 + 10;
+      // Add space before next section
+  yPos += 15;
   }
 
   // Declaration
@@ -456,6 +464,8 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   const splitDeclaration = doc.splitTextToSize(declarationText, contentWidth);
   doc.text(splitDeclaration, marginLeft, yPos);
   yPos += splitDeclaration.length * 5 + 10;
+    // Add space before next section
+  yPos += 15;
 
   // Signature
   doc.setFontSize(12);
