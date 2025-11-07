@@ -1,13 +1,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import pb from '@/lib/pocketbase';
 
-type UserModel = any;
+// A conservative user model: an object with unknown properties or null when not set.
+export type UserModel = Record<string, unknown> | null;
+
+type PBAuthStore = {
+  model?: Record<string, unknown> | null;
+  token?: string | null;
+  save?: (token: string, record?: Record<string, unknown> | null) => void;
+  clear?: () => void;
+  // some SDKs provide an onChange hook; typed below where needed
+};
 
 interface AuthContextValue {
   user: UserModel;
   isAuthenticated: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
+  initializing?: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -21,7 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // than polling and doesn't require touching SDK internals.
     let didInit = false;
     const handler = () => {
-      const model = pb.authStore.model ?? null;
+      const authStore = pb.authStore as unknown as PBAuthStore;
+      const model = authStore?.model ?? null;
       setUser(model);
       if (!didInit) {
         didInit = true;
@@ -37,45 +48,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(session);
         if (parsed?.token) {
           // restore into the SDK's auth store (this updates in-memory state)
-          // @ts-ignore
-          pb.authStore.save(parsed.token, parsed.record ?? null);
+          try {
+            // pb.authStore.save may not exist on all SDK versions; guard it.
+            const authStore = pb.authStore as unknown as PBAuthStore;
+            if (typeof authStore.save === 'function') {
+              authStore.save(parsed.token, parsed.record ?? null);
+            }
+          } catch (saveErr) {
+            console.warn('Failed to restore pb authStore session', saveErr);
+          }
         }
       }
     } catch (e) {
-      // ignore session restore errors
+      // Log session restore errors so lint doesn't complain about empty catches
       console.warn('Failed to restore session auth', e);
     }
 
     // run once immediately to hydrate
     handler();
 
-    // Attempt to refresh the auth token if the SDK believes the store is valid.
+    // Attempt to refresh the auth token. We try refresh and handle any errors.
     (async () => {
       try {
-        // @ts-ignore
-        if (pb.authStore?.isValid) {
-          await pb.collection('users').authRefresh();
-          // update local state from refreshed store
-          handler();
-        }
+        await pb.collection('users').authRefresh();
+        // update local state from refreshed store
+        handler();
       } catch (e) {
-        // refresh failed -> clear auth state
+        // refresh failed -> clear auth state and log the error
         try {
           pb.authStore.clear();
-        } catch (er) {}
+        } catch (er) {
+          console.warn('Failed to clear auth store after refresh failure', er);
+        }
+        console.warn('Auth refresh failed', e);
         handler();
       }
     })();
 
-    const authStoreAny = pb.authStore as any;
-    if (typeof authStoreAny.onChange === 'function') {
+    // Narrow the auth store type to check for an optional onChange handler without using `any`.
+    const maybeWithOnChange = pb.authStore as unknown as {
+      onChange?: (cb: () => void) => void | (() => void);
+    };
+
+    if (typeof maybeWithOnChange.onChange === 'function') {
       // onChange typically returns an unsubscribe function; call it on cleanup if provided
-      const unsub = authStoreAny.onChange(() => handler());
+      const unsub = maybeWithOnChange.onChange(() => handler());
       return () => {
         try {
           if (typeof unsub === 'function') unsub();
         } catch (e) {
-          // ignore unsubscribe errors
+          console.warn('Error calling authStore unsubscribe', e);
         }
       };
     }
@@ -85,10 +107,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(id);
   }, []);
 
-  const login = async (email: string, password: string, remember = true): Promise<any> => {
-    const auth = await pb.collection('users').authWithPassword(email, password);
+  const login = async (email: string, password: string, remember = true): Promise<void> => {
+    await pb.collection('users').authWithPassword(email, password);
     // ensure the user's email is verified before considering them authenticated
-    const model = pb.authStore.model ?? null;
+  const model = (pb.authStore as unknown as PBAuthStore)?.model ?? null;
     if (model && (model.verified === false || model.verified === 'false')) {
       // clear auth store and throw so UI can show a helpful message
       pb.authStore.clear();
@@ -99,38 +121,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // and remove the persistent local store (so the login lasts for this tab/session only).
     try {
       if (!remember) {
-        const token = pb.authStore.token;
-        const record = pb.authStore.model ?? null;
+  const authStore = pb.authStore as unknown as PBAuthStore;
+  const token = authStore.token;
+  const record = authStore.model ?? null;
         sessionStorage.setItem('pb_auth_session', JSON.stringify({ token, record }));
         try {
           // remove the SDK's persistent local storage key to avoid cross-session persistence
-          localStorage.removeItem('pb_auth');
+          if (typeof localStorage !== 'undefined') localStorage.removeItem('pb_auth');
         } catch (e) {
-          // ignore if localStorage is not available
+          console.warn('Failed to remove localStorage pb_auth', e);
         }
       } else {
         // ensure any session key is cleared when remembering between sessions
         try {
           sessionStorage.removeItem('pb_auth_session');
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to clear session auth key', e);
+        }
       }
     } catch (e) {
       console.warn('Failed to persist auth preference', e);
     }
 
     setUser(model);
-    return auth;
   };
 
   const logout = () => {
     pb.authStore.clear();
     try {
       sessionStorage.removeItem('pb_auth_session');
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to remove session auth on logout', e);
+    }
     setUser(null);
   };
 
-  const value: AuthContextValue & { initializing?: boolean } = {
+  const value: AuthContextValue = {
     user,
     isAuthenticated: Boolean(user),
     login,

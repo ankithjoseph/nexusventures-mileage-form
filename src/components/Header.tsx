@@ -24,10 +24,13 @@ export const Header = () => {
     if (location.pathname === '/expense-report') {
       return t('app.title.expense');
     }
-    if (location.pathname === '/') {
-      return t('app.title');
+    if (location.pathname === '/sepa-dd') {
+      return t('app.title.sepa');
     }
-    return t('app.title.mileage');
+    if (location.pathname === '/mileage-book') {
+      return t('app.title.mileage');
+    }
+    return t('app.title');
   };
 
   return (
@@ -76,7 +79,13 @@ const AuthButtons = () => {
   const location = useLocation();
 
   if (user) {
-    const userEmail = user?.email ?? user?.username ?? 'User';
+    let userEmail = 'User';
+    if (user && typeof user === 'object') {
+      const possibleEmail = (user as Record<string, unknown>)['email'] ?? (user as Record<string, unknown>)['username'];
+      if (typeof possibleEmail === 'string' && possibleEmail.length > 0) {
+        userEmail = possibleEmail;
+      }
+    }
     const initials = userEmail.charAt(0).toUpperCase();
 
     const handleLogout = () => {

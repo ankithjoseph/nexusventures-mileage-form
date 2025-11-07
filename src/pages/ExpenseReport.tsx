@@ -6,11 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
-import { Send, Globe, Link, Download } from "lucide-react";
+import { Send, Download } from "lucide-react";
 import { toast } from "sonner";
-import nexusLogo from "@/assets/nexus-ventures-logo.png";
+import Footer from '@/components/Footer';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { generateExpensePDF } from '@/utils/pdfGenerator';
+import FormActions from '@/components/FormActions';
 
 interface ExpenseReportData {
   name: string;
@@ -164,10 +165,10 @@ const ExpenseReport = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-6 text-primary">{t('expense.title')}</h2>
 
@@ -437,58 +438,13 @@ const ExpenseReport = () => {
             </div>
           </div>
 
-          <div className="flex justify-end items-center gap-3">
-            <Button onClick={handleDownloadPdf} variant="outline" size="lg">
-              <Download className="w-4 h-4 mr-2" />
-              {t('form.download')}
-            </Button>
-
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              <Send className="w-4 h-4 mr-2" />
-              {isSubmitting ? t('form.sending') : t('form.submit')}
-            </Button>
+          <div className="mt-6">
+            <FormActions onDownload={handleDownloadPdf} onSubmit={handleSubmit} isSubmitting={isSubmitting} downloadLabel={t('form.download')} submitLabel={isSubmitting ? t('form.sending') : t('form.submit')} />
           </div>
         </Card>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-card border-t mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <img
-                src={nexusLogo}
-                alt="Nexus Ventures"
-                className="h-8 w-auto object-contain"
-              />
-            </div>
-            <div className="text-center">
-              <p>Business Expense Report – Ireland Tax Year 2024</p>
-              <p className="mt-1">For tax compliance purposes. Keep records for at least 6 years.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <a
-                href="https://www.nexusventures.eu"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                www.nexusventures.eu
-              </a>
-              <a
-                href="https://www.linkedin.com/company/nexus-ventures-limited"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <Link className="w-4 h-4" />
-                LinkedIn
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer title="Business Expense Report - Ireland Tax Year 2024" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
   );
 };

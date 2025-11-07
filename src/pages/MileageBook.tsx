@@ -8,9 +8,9 @@ import { CapitalAllowancesSection } from "@/components/CapitalAllowancesSection"
 import { DeclarationSection } from "@/components/DeclarationSection";
 import { LogbookData, TripRow, createEmptyLogbook, createEmptyTrip } from "@/types/logbook";
 import { generatePDF } from "@/utils/pdfGenerator";
-import { Download, Save, Upload, FileText, Link, Globe, Send } from "lucide-react";
+import { Download, Save, Upload, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
-import nexusLogo from "@/assets/nexus-ventures-logo.png";
+import Footer from '@/components/Footer';
 import { Header } from "@/components/Header";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -187,11 +187,11 @@ const MileageBook = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <main className="container mx-auto px-4 py-8 max-w-7xl flex-1">
         <div className="space-y-6">
           <DriverVehicleSection
             data={formData}
@@ -241,44 +241,7 @@ const MileageBook = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-card border-t mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <img
-                src={nexusLogo}
-                alt="Nexus Ventures"
-                className="h-8 w-auto object-contain"
-              />
-            </div>
-            <div className="text-center">
-              <p>Business Mileage Logbook – Ireland Tax Year 2024</p>
-              <p className="mt-1">For tax compliance purposes. Keep records for at least 6 years.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <a
-                href="https://www.nexusventures.eu"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                www.nexusventures.eu
-              </a>
-              <a
-                href="https://www.linkedin.com/company/nexus-ventures-limited"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <Link className="w-4 h-4" />
-                LinkedIn
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer title="Business Mileage Logbook – Ireland Tax Year 2024" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
   );
 };

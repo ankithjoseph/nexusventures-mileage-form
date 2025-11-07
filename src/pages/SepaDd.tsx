@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import jsPDF from 'jspdf';
+import nexusLogo from '@/assets/nexus-ventures-logo.png';
+import SignaturePad, { SignaturePadHandle } from '@/components/SignaturePad';
 import { toast } from '@/components/ui/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Header } from '@/components/Header';
-import nexusLogo from '@/assets/nexus-ventures-logo.png';
+import Footer from '@/components/Footer';
+import FormActions from '@/components/FormActions';
 
 const SepaDd: React.FC = () => {
   const [name, setName] = useState('');
@@ -19,7 +24,8 @@ const SepaDd: React.FC = () => {
   const [creditor, setCreditor] = useState('Nexus Ventures');
   const [uniqueMandateRef, setUniqueMandateRef] = useState('');
   const [paymentType, setPaymentType] = useState<'recurrent' | 'one-off' | ''>('');
-  const [mandateRef, setMandateRef] = useState('');
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const sigPadRef = useRef<SignaturePadHandle | null>(null);
   const [signatureDate, setSignatureDate] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -28,6 +34,10 @@ const SepaDd: React.FC = () => {
     e?.preventDefault();
     if (!name || !iban || !consent) {
       toast({ title: 'Missing information', description: 'Please provide name, IBAN and consent before submitting.', variant: 'destructive' });
+      return;
+    }
+    if (!signatureData) {
+      toast({ title: 'Missing signature', description: 'Please provide a signature by drawing or uploading an image.', variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -40,46 +50,203 @@ const SepaDd: React.FC = () => {
     }
   };
 
+  const generatePdf = async () => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const left = 12;
+    const right = pageWidth - 12;
+
+    // Header band
+    doc.setFillColor(228, 224, 206);
+    doc.rect(10, 10, pageWidth - 20, 18, 'F');
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SEPA Direct Debit Mandate', pageWidth / 2, 22, { align: 'center' });
+
+    // Unique mandate box
+    doc.setDrawColor(100);
+    doc.rect(12, 30, pageWidth - 24, 12);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    if (uniqueMandateRef) {
+      doc.text(uniqueMandateRef, 14, 38);
+    }
+
+    // Logo top-right
+    try {
+      const logoW = 30;
+      const logoH = 12;
+      doc.addImage(nexusLogo, 'PNG', pageWidth - 12 - logoW, 12, logoW, logoH);
+    } catch (err) {
+      // ignore
+    }
+
+    // Creditor identifier band
+    doc.setFillColor(219, 234, 254);
+    doc.rect(10, 44, pageWidth - 20, 20, 'F');
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('*Creditor Identifier: IE75ZZZ362238', 14, 58);
+
+    // Legal text
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const legal = 'By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd. As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. Please complete all the fields below marked *';
+    const splitted = doc.splitTextToSize(legal, pageWidth - 24);
+    doc.text(splitted, 12, 68);
+
+    // Fields positions
+    let y = 68 + splitted.length * 4 + 6;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('*Customer Name :', 12, y);
+    doc.setDrawColor(0);
+    doc.rect(60, y - 6, pageWidth - 72, 8);
+    if (name) {
+      doc.setFont('helvetica', 'normal');
+      doc.text(name, 62, y);
+    }
+
+    y += 14;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Customer Address:', 12, y);
+    doc.setDrawColor(0);
+    doc.rect(60, y - 8, pageWidth - 72, 24);
+    if (address) {
+      doc.setFont('helvetica', 'normal');
+      const addressLines = doc.splitTextToSize(address, pageWidth - 80);
+      doc.text(addressLines, 62, y + 2);
+    }
+
+    y += 34;
+    doc.setFont('helvetica', 'bold');
+    doc.text('*City/postcode:', 12, y);
+    doc.text('*Country:', 120, y);
+    doc.rect(40, y - 6, 60, 8);
+    doc.rect(150, y - 6, 40, 8);
+    if (city) {
+      doc.setFont('helvetica', 'normal');
+      doc.text(city, 42, y);
+    }
+    if (country) {
+      doc.text(country, 152, y);
+    }
+
+    y += 14;
+    doc.setFont('helvetica', 'bold');
+    doc.text('*Account number (IBAN) :', 12, y);
+    doc.rect(60, y - 6, pageWidth - 72, 8);
+    if (iban) {
+      doc.setFont('helvetica', 'normal');
+      doc.text(iban, 62, y);
+    }
+
+    y += 14;
+    doc.setFont('helvetica', 'bold');
+    doc.text('*Swift BIC :', 12, y);
+    doc.rect(60, y - 6, 60, 8);
+    if (bic) {
+      doc.setFont('helvetica', 'normal');
+      doc.text(bic, 62, y);
+    }
+
+    // Info box
+    y += 16;
+    doc.setDrawColor(0);
+    doc.rect(12, y, pageWidth - 24, 26);
+    doc.setFontSize(9);
+    doc.text('*Creditors Name : Nexus Ventures Limited & Irish Tax Agents Limited', 14, y + 6);
+    doc.text('*Creditors : Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2', 14, y + 12);
+    doc.text('*Country : Republic of Ireland', 14, y + 18);
+
+    // Payment type and date
+    y += 36;
+    doc.setFontSize(10);
+    doc.text('*Type of payment Recurrent :', 12, y);
+    doc.circle(70, y - 1.5, 2, 'S');
+    doc.text('or One-Off Payment :', 90, y);
+    doc.circle(140, y - 1.5, 2, 'S');
+
+    y += 12;
+    doc.text('*Date of signing :', 12, y);
+    doc.rect(45, y - 6, 60, 8);
+    if (signatureDate) {
+      doc.setFont('helvetica', 'normal');
+      doc.text(signatureDate, 47, y);
+    }
+
+    // Signature box
+    y += 18;
+    doc.text('*Signature(s) :', 12, y);
+    const sigX = 60;
+    const sigY = y - 6;
+    const sigW = 100;
+    const sigH = 24;
+    doc.rect(sigX, sigY, sigW, sigH);
+
+    // draw signature if present (use high-res if available)
+    try {
+      const dataUrl = sigPadRef.current?.getDataUrl(3) ?? signatureData;
+      if (dataUrl) {
+        doc.addImage(dataUrl, 'PNG', sigX + 2, sigY + 2, sigW - 4, sigH - 4);
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    doc.save('sepa-mandate.pdf');
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
+      <style>{`@media print { .no-print { display:none !important; } .signature-preview img { width: 80mm !important; height: auto !important; } } .signature-preview img { image-rendering: -webkit-optimize-contrast; }`}</style>
       <Header />
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <Card className="p-6">
           <h1 className="text-xl font-semibold mb-4">SEPA Direct Debit (SEPA-DD) form</h1>
-          <p className="text-sm text-muted-foreground mb-6">Fill in the details below to create a SEPA Direct Debit mandate. This is a front-end form; submission currently only shows confirmation. Let me know if you want PDF generation or server-side saving.</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+          <div className="bg-blue-50 border p-3 rounded">
+          <p className="text-sm text-muted-foreground mb-6 font-semibold"> By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd. <br/><br/>
+                As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank.  
+                Please complete all the fields below marked *</p>
+          </div>
+          <br/>
+          <form onSubmit={handleSubmit} className="space-y-4 " autoComplete="off">
+            {/* Header band with title + unique mandate reference */}
+            <div className="bg-amber-100 border p-3 rounded">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold">SEPA Direct Debit Mandate</div>
+                <div className="w-1/2">
                   <Label htmlFor="sepa-unique">*Unique Mandate Reference</Label>
                   <Input id="sepa-unique" name="uniqueMandateRef" value={uniqueMandateRef} onChange={(e) => setUniqueMandateRef(e.target.value)} autoComplete="off" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sepa-creditor">Creditor Identifier</Label>
-                  <Input id="sepa-creditor" name="creditor" value={creditor} onChange={(e) => setCreditor(e.target.value)} autoComplete="off" />
-                </div>
+              </div>
+            </div>
+
+            {/* Creditor identifier and legal text */}
+            <div className="bg-blue-50 border p-3 rounded">
+              <div className="mb-2 font-semibold">*Creditor Identifier: <span className="font-bold">IE75ZZZ362238</span></div>
+            </div>
+
+            {/* Customer details */}
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="sepa-name">*Customer Name</Label>
+                <Input id="sepa-name" name="name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div>
-                  <Label htmlFor="sepa-name">*Customer Name</Label>
-                  <Input id="sepa-name" name="name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" />
-                </div>
-                <div>
-                  <Label htmlFor="sepa-address">Customer Address</Label>
-                  <Input id="sepa-address" name="address" value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="off" />
-                </div>
+              <div>
+                <Label htmlFor="sepa-address">Customer Address</Label>
+                <Textarea id="sepa-address" name="address" value={address} onChange={(e) => setAddress(e.target.value)} rows={3} />
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mt-2">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="sepa-city">*City/postcode</Label>
+                  <Label htmlFor="sepa-city">*City</Label>
                   <Input id="sepa-city" name="city" value={city} onChange={(e) => setCity(e.target.value)} autoComplete="off" />
                 </div>
                 <div>
-                  <Label htmlFor="sepa-postcode">&nbsp;</Label>
+                  <Label htmlFor="sepa-postcode">*Postcode</Label>
                   <Input id="sepa-postcode" name="postcode" value={postcode} onChange={(e) => setPostcode(e.target.value)} autoComplete="off" />
                 </div>
                 <div>
@@ -88,7 +255,7 @@ const SepaDd: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="sepa-iban">*Account number (IBAN)</Label>
                   <Input id="sepa-iban" name="iban" value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} required autoComplete="off" />
@@ -99,48 +266,65 @@ const SepaDd: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Info box */}
+            <div className="border p-3 text-sm bg-white">
+              <p className="mb-1">*Creditors Name : Nexus Ventures Limited & Irish Tax Agents Limited</p>
+              <p className="mb-1">*Creditors : Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2</p>
+              <p>*Country : Republic of Ireland</p>
+            </div>
+
+            {/* Payment type and signing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div>
+                <div className="mb-2 font-medium">*Type of payment</div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="paymentType" value="recurrent" checked={paymentType === 'recurrent'} onChange={() => setPaymentType('recurrent')} />
+                    <span className="ml-1">Recurrent</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="paymentType" value="one-off" checked={paymentType === 'one-off'} onChange={() => setPaymentType('one-off')} />
+                    <span className="ml-1">One-Off</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="signatureDate">*Date of signing</Label>
+                <Input id="signatureDate" type="date" value={signatureDate} onChange={(e) => setSignatureDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="signature">*Signature(s)</Label>
+              <SignaturePad ref={sigPadRef} accepted={Boolean(signatureData)} onChange={(data) => setSignatureData(data)} width={600} height={160} />
+              {signatureData && (
+                <div className="mt-2">
+                  <div className="text-xs text-muted-foreground mb-1">Signature preview</div>
+                  <div className="signature-preview">
+                    <img title="Accepted signature preview" src={signatureData} alt="signature preview" className="border rounded" style={{ maxWidth: 300 }} />
+                  </div>
+                  
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center space-x-2">
-              <Checkbox id="sepa-consent" checked={consent} onCheckedChange={(v: any) => setConsent(Boolean(v))} />
-              <Label htmlFor="sepa-consent">I authorize the creditor to collect payments from my account by direct debit (SEPA) and I confirm that I am entitled to the account holder's signature.</Label>
+              <Checkbox id="sepa-consent" checked={consent} onCheckedChange={(v) => setConsent(Boolean(v))} />
+              <Label htmlFor="sepa-consent">I authorise the creditor to collect payments from my account by direct debit (SEPA) and I confirm that I am entitled to the account holder's signature.</Label>
             </div>
 
             <div className="flex justify-end">
-              <div className="flex gap-2">
-                <Button type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit SEPA mandate'}</Button>
-              </div>
+                <div className="mt-6">
+                  <FormActions onDownload={generatePdf} onSubmit={() => handleSubmit()} isSubmitting={submitting} downloadLabel={'Download PDF'} submitLabel={submitting ? 'Submitting…' : 'Submit SEPA mandate'} downloadVariant="outline" />
+                </div>
             </div>
           </form>
         </Card>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-card border-t mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <img
-                src={nexusLogo}
-                alt="Nexus Ventures"
-                className="h-8 w-auto object-contain"
-              />
-            </div>
-            <div className="text-center">
-              <p>SEPA Direct Debit Mandate</p>
-              <p className="mt-1">This form creates a SEPA mandate for recurring or one-off direct debits.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <a
-                href="https://www.nexusventures.eu"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <span className="underline">www.nexusventures.eu</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer title="SEPA Direct Debit Mandate" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
   );
 };

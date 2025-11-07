@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Send, Download } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LogbookData } from "@/types/logbook";
+import FormActions from '@/components/FormActions';
 
 interface DeclarationSectionProps {
   data: Partial<LogbookData>;
@@ -55,24 +56,9 @@ export const DeclarationSection = ({ data, onChange, onSubmit, isSubmitting = fa
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end items-center gap-3">
-        {onDownload && (
-          <Button onClick={onDownload} variant="outline" size="lg">
-            <Download className="w-4 h-4 mr-2" />
-            {t('form.download')}
-          </Button>
-        )}
-
-        <Button
-          onClick={onSubmit}
-          disabled={isSubmitting}
-          size="lg"
-          className="min-w-[200px]"
-        >
-          <Send className="w-4 h-4 mr-2" />
-          {isSubmitting ? t('form.sending') : t('form.submit')}
-        </Button>
-      </div>
+          <div className="mt-6">
+            <FormActions onDownload={onDownload} onSubmit={onSubmit} isSubmitting={isSubmitting} downloadLabel={t('form.download')} submitLabel={t('form.submit')} />
+          </div>
     </Card>
   );
 };

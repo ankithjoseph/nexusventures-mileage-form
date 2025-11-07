@@ -16,10 +16,11 @@ const translations = {
     'app.title': 'Nexus Ventures Forms',
     'app.title.mileage': 'Business Mileage Logbook',
     'app.title.expense': 'Business Expense Report',
+    'app.title.sepa': 'SEPA Direct Debit Mandate',
     'app.subtitle': 'Ireland – Employee/Director, Tax Year 2024',
     'nav.mileage': 'Mileage Logbook',
     'nav.expense': 'Expense Report',
-    'lang.toggle': 'ES',
+    'lang.toggle': 'EN',
 
     // Common
     'form.submit': 'Submit Report',
@@ -190,10 +191,11 @@ const translations = {
     'app.title': 'Formularios Nexus Ventures',
     'app.title.mileage': 'Libro de Kilometraje Laboral',
     'app.title.expense': 'Informe de Gastos por Viajes de Trabajo',
-    'app.subtitle': 'Irlanda – Empleado/Director, Año Fiscal 2024',
+    'app.title.sepa': 'Mandato de Débito Directo SEPA',
+    'app.subtitle': 'Irlanda - Empleado/Director, Año Fiscal 2024',
     'nav.mileage': 'Libro de Kilometraje',
     'nav.expense': 'Informe de Gastos',
-    'lang.toggle': 'EN',
+    'lang.toggle': 'ES',
 
     // Common
     'form.submit': 'Enviar Informe',
