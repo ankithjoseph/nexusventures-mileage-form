@@ -1,8 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Send, Download } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LogbookData } from "@/types/logbook";
 import FormActions from '@/components/FormActions';

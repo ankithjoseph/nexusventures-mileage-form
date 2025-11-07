@@ -10,7 +10,7 @@ interface jsPDFWithAutoTable extends jsPDF {
   };
 }
 
-export const generatePDF = (data: LogbookData, includeFillableFields: boolean = false, t?: (key: string) => string) => {
+export const generatePDF = (data: LogbookData, _includeFillableFields: boolean = false, t?: (key: string) => string) => {
   const doc: jsPDFWithAutoTable = new jsPDF();
   const marginLeft = 15;
   const marginRight = 15;

@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
-import { Send, Download } from "lucide-react";
+// lucide icons not used in this page
 import { toast } from "sonner";
 import Footer from '@/components/Footer';
 import { useLanguage } from "@/contexts/LanguageContext";

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { DriverVehicleSection } from "@/components/DriverVehicleSection";
 import { TripsTable } from "@/components/TripsTable";
 import { TotalsSection } from "@/components/TotalsSection";
@@ -8,7 +7,7 @@ import { CapitalAllowancesSection } from "@/components/CapitalAllowancesSection"
 import { DeclarationSection } from "@/components/DeclarationSection";
 import { LogbookData, TripRow, createEmptyLogbook, createEmptyTrip } from "@/types/logbook";
 import { generatePDF } from "@/utils/pdfGenerator";
-import { Download, Save, Upload, FileText, Send } from "lucide-react";
+// lucide icons not used in this page
 import { toast } from "sonner";
 import Footer from '@/components/Footer';
 import { Header } from "@/components/Header";
@@ -145,46 +144,7 @@ const MileageBook = () => {
   };
 
 
-  const handleSaveData = () => {
-    try {
-      const dataStr = JSON.stringify(formData);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `mileage-logbook-data-${new Date().toISOString().split('T')[0]}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success(t('form.data.saved'));
-    } catch (error) {
-      toast.error(t('form.data.save.error'));
-      console.error(error);
-    }
-  };
-
-  const handleLoadData = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const loadedData = JSON.parse(event.target?.result as string);
-            setFormData(loadedData);
-            toast.success(t('form.data.loaded'));
-          } catch (error) {
-            toast.error(t('form.data.load.error'));
-            console.error(error);
-          }
-        };
-        reader.readAsText(file);
-      }
-    };
-    input.click();
-  };
+  // Note: save/load helpers removed because they were not used. Re-add if you need client-side JSON import/export.
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

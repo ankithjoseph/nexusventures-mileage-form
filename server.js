@@ -124,20 +124,29 @@ app.post('/api/send-email', async (req, res) => {
       return res.status(500).json({ error: 'RESEND_API_KEY not configured on server' });
     }
 
-    // Validate required fields
-    if (!name || !email || !pps || !pdfData) {
-      return res.status(400).json({
-        error: 'Missing required fields: name, email, pps, pdfData'
-      });
+    // Validate required fields per form type
+    const isSepa = type === 'sepa';
+    if (isSepa) {
+      if (!name || !email || !pdfData) {
+        return res.status(400).json({ error: 'Missing required fields for SEPA: name, email, pdfData' });
+      }
+    } else {
+      if (!name || !email || !pps || !pdfData) {
+        return res.status(400).json({ error: 'Missing required fields: name, email, pps, pdfData' });
+      }
     }
 
     // Prepare email content based on form type
     const isExpenseReport = type === 'expense-report';
     const subject = isExpenseReport
       ? `Nuevo Expense Report - ${name}`
+      : isSepa
+      ? `Nuevo SEPA Mandate - ${name}`
       : `Nuevo Registro de Business Mileage - ${name}`;
 
-    const html = isExpenseReport ? `
+    let html = '';
+    if (isExpenseReport) {
+      html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
           Nuevo Expense Report
@@ -163,7 +172,27 @@ app.post('/api/send-email', async (req, res) => {
           El PDF del expense report está adjunto.
         </p>
       </div>
-    ` : `
+    `;
+    } else if (isSepa) {
+      html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">Nuevo Mandato SEPA</h1>
+        <p style="font-size: 16px; margin: 20px 0;">Se ha recibido un nuevo mandato SEPA.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Nombre:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Email:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${email}</td>
+          </tr>
+        </table>
+        <p style="font-size: 14px; color: #666; margin: 20px 0;">El PDF del mandato SEPA está adjunto.</p>
+      </div>
+    `;
+    } else {
+      html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">
           Nuevo Registro de Business Mileage
@@ -190,9 +219,10 @@ app.post('/api/send-email', async (req, res) => {
         </p>
       </div>
     `;
+    }
 
     // Send email via Resend
-    const filename = isExpenseReport ? 'expense-report.pdf' : 'mileage-logbook.pdf';
+  const filename = isExpenseReport ? 'expense-report.pdf' : isSepa ? 'sepa-mandate.pdf' : 'mileage-logbook.pdf';
 
     // Normalize pdfData: accept either raw base64 or data URL (data:...;base64,...)
     let base64 = pdfData ?? '';
@@ -278,6 +308,21 @@ app.post('/api/send-email', async (req, res) => {
                 </div>
               `;
               customerFilename = `mi-informe-gastos-${today}.pdf`;
+            } else if (isSepa) {
+              // SEPA customer confirmation
+              customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;
+              customerSubject = `Confirmación - Mandato SEPA`;
+              customerHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">Gracias por enviar su Mandato SEPA</h1>
+                  <p style="font-size: 16px; margin: 20px 0;">Estimado/a ${name},</p>
+                  <p style="font-size: 16px; margin: 20px 0;">Hemos recibido su Mandato SEPA. Adjuntamos una copia para sus registros.</p>
+                  <!-- IBAN omitted from customer confirmation for privacy -->
+                  <p style="font-size: 14px; color: #718096; margin-top: 30px;">Si tiene alguna pregunta, no dude en contactarnos.</p>
+                  <p style="font-size: 14px; margin-top: 30px;">Saludos cordiales,<br><strong>Nexus Ventures Team</strong></p>
+                </div>
+              `;
+              customerFilename = `mi-mandato-sepa-${today}.pdf`;
             } else {
               // mileage/logbook
               customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;

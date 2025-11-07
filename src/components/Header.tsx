@@ -1,5 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
-import { FileText, Receipt, Languages, User, LogOut } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { FileText, Languages, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ import nexusLogo from "@/assets/nexus-ventures-logo.png";
 
 export const Header = () => {
   const location = useLocation();
-  const { t, toggleLanguage, language } = useLanguage();
+  const { t, toggleLanguage } = useLanguage();
 
   // Determine title based on current route
   const getPageTitle = () => {

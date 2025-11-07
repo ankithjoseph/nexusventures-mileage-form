@@ -24,7 +24,7 @@ export type SignaturePadHandle = {
 const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(({ onChange, initialDataUrl = null, width = 600, height = 200, accepted = false }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const signaturePadRef = useRef<SignaturePadLib | null>(null);
-  const [hasContent, setHasContent] = useState(false);
+  const [, setHasContent] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
