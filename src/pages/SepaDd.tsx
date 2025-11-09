@@ -360,7 +360,7 @@ const SepaDd: React.FC = () => {
           <div className="bg-blue-50 border p-3 rounded">
           <p className="text-sm text-muted-foreground mb-6 font-semibold"> By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd. <br/><br/>
                 As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank.  
-                Please complete all the fields below marked *</p>
+                <br/><br/>Please complete all the fields below marked *</p>
           </div>
           <br/>
           <form onSubmit={handleSubmit} className="space-y-4 " autoComplete="off">

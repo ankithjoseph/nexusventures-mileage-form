@@ -12,6 +12,7 @@ import RequireAuth from '@/components/RequireAuth';
 import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
 import SepaDd from "./pages/SepaDd";
+import CardPayment from "./pages/CardPayment";
 import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <SepaDd />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/card-payment"
+                element={
+                  <RequireAuth>
+                    <CardPayment />
                   </RequireAuth>
                 }
               />
