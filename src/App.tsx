@@ -13,6 +13,7 @@ import ExpenseReport from "./pages/ExpenseReport";
 import MileageBook from "./pages/MileageBook";
 import SepaDd from "./pages/SepaDd";
 import CardPayment from "./pages/CardPayment";
+import FileUpload from "./pages/FileUpload";
 import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
 
@@ -62,6 +63,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <CardPayment />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/file-upload"
+                element={
+                  <RequireAuth>
+                    <FileUpload />
                   </RequireAuth>
                 }
               />

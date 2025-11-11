@@ -1,3 +1,6 @@
+// Load environment variables from .env in development (requires dotenv installed)
+import 'dotenv/config';
+
 // Simple Express server for email functionality
 // This can be deployed alongside the frontend
 
@@ -7,6 +10,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import PocketBase from 'pocketbase';
+import multer from 'multer';
+import FormData from 'form-data';
 
 // Use global fetch when available (Node 18+). If not present, try to dynamically
 // import `node-fetch`. We avoid a static import so the server can run without
@@ -46,6 +51,39 @@ const ipRateMap = new Map(); // ip -> { count, firstAt }
 // PocketBase client for server-side operations
 const POCKETBASE_URL = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090';
 const pbServer = new PocketBase(POCKETBASE_URL);
+
+// Attempt to authenticate the server PocketBase client with an admin token or admin credentials
+// Preferred: provide POCKETBASE_ADMIN_TOKEN (admin session token). Alternative: provide
+// POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD to log in at startup.
+const _ADMIN_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN || process.env.PB_ADMIN_TOKEN;
+const _ADMIN_EMAIL = process.env.POCKETBASE_ADMIN_EMAIL;
+const _ADMIN_PASSWORD = process.env.POCKETBASE_ADMIN_PASSWORD;
+(async () => {
+  try {
+    if (_ADMIN_TOKEN) {
+      try {
+        pbServer.authStore.save(_ADMIN_TOKEN, {});
+        console.log('PocketBase: loaded admin token from env');
+      } catch (e) {
+        console.warn('PocketBase: failed to load admin token from env', e?.message || e);
+      }
+    } else if (_ADMIN_EMAIL && _ADMIN_PASSWORD) {
+      try {
+        await pbServer.admins.authWithPassword(_ADMIN_EMAIL, _ADMIN_PASSWORD);
+        console.log('PocketBase: authenticated admin via email/password');
+      } catch (e) {
+        console.warn('PocketBase: admin email/password auth failed', e?.message || e);
+      }
+    } else {
+      console.log('PocketBase: no admin credentials provided, pbServer will act anonymously');
+    }
+  } catch (err) {
+    console.warn('PocketBase: unexpected error during admin auth setup', err?.message || err);
+  }
+})();
+
+// Multer setup for multipart/form-data (store files in memory, validate size)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // max 10MB per file
 
 // Helper to check & increment rate limits; returns { ok: boolean, reason?: string }
 function checkAndIncrRate(map, key, max) {
@@ -489,6 +527,154 @@ app.post('/api/request-password-reset', async (req, res) => {
   } catch (err) {
     console.error('request-password-reset server error', err);
     return res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// AML submission endpoint
+// Accepts multipart/form-data with two files: 'passport' and 'proof_of_address'
+// The endpoint will create a record in the 'aml_applications' collection using the server PocketBase client.
+// NOTE: For full admin privileges ensure the server-side PocketBase client has an admin token available
+// via environment (e.g. set POCKETBASE_ADMIN_TOKEN and call pbServer.authStore.save(token, {})).
+app.post('/api/aml-submit', upload.fields([
+  { name: 'passport', maxCount: 1 },
+  { name: 'proof_of_address', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    // Basic form fields
+    const fields = req.body || {};
+    const files = req.files || {};
+
+    // simple validation
+    const required = ['fullName', 'email', 'phone', 'address', 'clientType', 'nationality', 'consent'];
+    for (const k of required) {
+      if (!fields[k]) return res.status(400).json({ error: `missing_field_${k}` });
+    }
+
+    // files
+    if (!files.passport || files.passport.length === 0) return res.status(400).json({ error: 'passport_required' });
+    if (!files.proof_of_address || files.proof_of_address.length === 0) return res.status(400).json({ error: 'proof_required' });
+
+    // Build a multipart payload for PocketBase using the `form-data` package
+    // This ensures multipart headers (including boundary) are available to axios
+    const formData = new FormData();
+
+    // map simple fields (use field names expected by the collection)
+    formData.append('full_name', fields.fullName || '');
+    formData.append('email', fields.email || '');
+    formData.append('phone', fields.phone || '');
+    formData.append('address', fields.address || '');
+    formData.append('client_type', fields.clientType || 'individual');
+    formData.append('nationality', fields.nationality || '');
+    formData.append('date_of_birth', fields.dob || '');
+    formData.append('date_of_incorporation', fields.companyIncorpDate || '');
+    formData.append('company_name', fields.companyName || '');
+    formData.append('company_cro', fields.companyCRO || '');
+    formData.append('activity_description', fields.activityDescription || '');
+    formData.append('consent', fields.consent ? '1' : '0');
+    // If client included a user id, preserve it so the record owner relation can be set server-side
+    if (fields.user) formData.append('user', fields.user);
+
+    // Attach files from multer memory storage (buffer) with filename & content type
+    const passportFile = files.passport[0];
+    const proofFile = files.proof_of_address[0];
+
+    formData.append('passport', passportFile.buffer, {
+      filename: passportFile.originalname || 'passport',
+      contentType: passportFile.mimetype || 'application/octet-stream',
+      knownLength: passportFile.size,
+    });
+
+    formData.append('proof_of_address', proofFile.buffer, {
+      filename: proofFile.originalname || 'proof',
+      contentType: proofFile.mimetype || 'application/octet-stream',
+      knownLength: proofFile.size,
+    });
+
+    // Prefer using an incoming user token (Authorization header) so records are created as that user.
+    // Fallback to server admin token from env if no user token is provided.
+  const authHeader = req.headers.authorization || req.headers['x-pocketbase-token'] || '';
+    let usedTokenSource = 'none';
+    if (authHeader) {
+      const match = String(authHeader).match(/Bearer\s+(.+)$/i);
+      const token = match ? match[1] : String(authHeader);
+      try {
+        pbServer.authStore.save(token, {});
+        usedTokenSource = 'user-token';
+        // do not log the token itself
+        console.log('Using incoming PocketBase token for create (user)');
+      } catch (e) {
+        console.warn('Failed to set incoming user token on pbServer.authStore', e?.message || e);
+      }
+    }
+
+    if (usedTokenSource === 'none') {
+      const adminToken = process.env.POCKETBASE_ADMIN_TOKEN || process.env.PB_ADMIN_TOKEN;
+      if (adminToken) {
+        try {
+          pbServer.authStore.save(adminToken, {});
+          usedTokenSource = 'admin-token';
+          console.log('Using server admin token for create');
+        } catch (err) {
+          console.warn('Failed to save admin token to pbServer.authStore, proceeding without saving token', err?.message || err);
+        }
+      }
+    }
+
+    // Attempt to create the record in PocketBase
+    let created;
+    try {
+      // Pass the form-data headers to the PocketBase SDK so axios can set the correct Content-Type
+      const headers = formData.getHeaders ? formData.getHeaders() : {};
+
+      // Try to compute Content-Length and add it to headers if available. Some servers reject chunked uploads.
+      if (typeof formData.getLength === 'function') {
+        try {
+          const len = await new Promise((resolve, reject) => {
+            formData.getLength((err, length) => {
+              if (err) return reject(err);
+              resolve(length);
+            });
+          });
+          if (len && Number.isFinite(Number(len))) {
+            headers['Content-Length'] = String(len);
+          }
+        } catch (lenErr) {
+          console.warn('Could not compute formData length, proceeding without Content-Length header', lenErr?.message || lenErr);
+        }
+      }
+
+      // Extra debug logging for incoming fields/files (non-sensitive summary)
+      try {
+        console.log('Attempting PocketBase create with fields:', {
+          full_name: fields.fullName,
+          email: fields.email,
+          phone: fields.phone,
+          client_type: fields.clientType,
+        });
+        console.log('Files:', {
+          passport: { name: passportFile.originalname, size: passportFile.size, type: passportFile.mimetype },
+          proof_of_address: { name: proofFile.originalname, size: proofFile.size, type: proofFile.mimetype },
+        });
+      } catch (logErr) {
+        console.warn('Failed to log debug info for aml-submit:', logErr?.message || logErr);
+      }
+
+      created = await pbServer.collection('aml_applications').create(formData, { headers });
+    } catch (err) {
+      // Provide richer logging for debugging: include response body if available
+      const respData = err?.response?.data || err?.response || err?.message || String(err);
+      try {
+        console.error('PocketBase create failed (detailed):', JSON.stringify(respData, null, 2));
+      } catch (jErr) {
+        console.error('PocketBase create failed:', respData);
+      }
+      return res.status(500).json({ error: 'pocketbase_create_failed', details: respData });
+    }
+
+    return res.json({ success: true, record: created });
+  } catch (err) {
+    console.error('aml-submit server error:', err);
+    return res.status(500).json({ error: 'server_error', details: String(err) });
   }
 });
 
