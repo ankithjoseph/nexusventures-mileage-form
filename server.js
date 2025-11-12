@@ -51,6 +51,35 @@ const ipRateMap = new Map(); // ip -> { count, firstAt }
 const POCKETBASE_URL = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090';
 const pbServer = new PocketBase(POCKETBASE_URL);
 
+// Route -> metadata mapping used to inject server-side meta for crawlers
+const ROUTE_META = {
+  '/expense-report': {
+    title: 'Expense Report - Nexus Ventures',
+    description: 'Create and manage your expense reports.',
+    image: '/logo.png',
+  },
+  '/mileage-book': {
+    title: 'Mileage Book - Nexus Ventures',
+    description: 'Log and manage mileage trips for tax purposes.',
+    image: '/logo.png',
+  },
+  '/sepa-dd': {
+    title: 'SEPA Direct Debit Mandate - Nexus Ventures',
+    description: 'Submit your SEPA Direct Debit mandate to Nexus Ventures.',
+    image: '/logo.png',
+  },
+  '/card-payment': {
+    title: 'Card Payment Mandate- Nexus Ventures',
+    description: 'Submit your Card Payment mandate to Nexus Ventures.',
+    image: '/logo.png',
+  },
+  '/file-upload': {
+    title: 'AML Compliance Form - Nexus Ventures',
+    description: 'Submit your Anti-Money Laundering compliance form to Nexus Ventures.',
+    image: '/logo.png',
+  },
+};
+
 
 
 // Helper to check & increment rate limits; returns { ok: boolean, reason?: string }
@@ -92,10 +121,12 @@ app.get('*', async (req, res) => {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
 
-  // Provide route-specific metadata for certain public routes so social
-  // crawlers (that don't execute JS) get a meaningful preview when links are
-  // shared. For example, /sepa-dd should expose SEPA-specific title/description.
-  if (req.path === '/sepa-dd' || req.path === '/sepa-dd/') {
+  // If this path matches one of our known route metas, inject server-side
+  // meta tags so crawlers that don't run JS receive a proper OpenGraph
+  // preview for form pages.
+  const normalizedPath = req.path.endsWith('/') && req.path.length > 1 ? req.path.slice(0, -1) : req.path;
+  const meta = ROUTE_META[normalizedPath];
+  if (meta) {
     const distIndex = path.join(__dirname, 'dist', 'index.html');
     const fallbackIndex = path.join(__dirname, 'index.html');
     try {
@@ -106,16 +137,16 @@ app.get('*', async (req, res) => {
         html = await fs.readFile(fallbackIndex, 'utf8');
       }
 
-      const sepaTitle = 'SEPA Direct Debit Mandate | Nexus Ventures';
-      const sepaDescription = 'Submit your SEPA Direct Debit mandate to Nexus Ventures.';
-      const ogImage = '/logo.png';
+      const title = meta.title;
+      const description = meta.description;
+      const ogImage = meta.image || '/logo.png';
       const canonicalHref = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
       // Replace or insert <title>
       if (/\<title[^>]*\>.*?\<\/title\>/i.test(html)) {
-        html = html.replace(/\<title[^>]*\>.*?\<\/title\>/i, `<title>${sepaTitle}</title>`);
+        html = html.replace(/\<title[^>]*\>.*?\<\/title\>/i, `<title>${title}</title>`);
       } else {
-        html = html.replace(/<head([^>]*)>/i, `<head$1>\n    <title>${sepaTitle}</title>`);
+        html = html.replace(/<head([^>]*)>/i, `<head$1>\n    <title>${title}</title>`);
       }
 
       // Helper to upsert meta tags
@@ -128,11 +159,11 @@ app.get('*', async (req, res) => {
         }
       };
 
-      upsertMeta('description', `<meta name="description" content="${sepaDescription}">`);
-      upsertMeta('og:description', `<meta property="og:description" content="${sepaDescription}">`);
-      upsertMeta('og:title', `<meta property="og:title" content="${sepaTitle}">`);
-      upsertMeta('twitter:title', `<meta name="twitter:title" content="${sepaTitle}">`);
-      upsertMeta('twitter:description', `<meta name="twitter:description" content="${sepaDescription}">`);
+      upsertMeta('description', `<meta name="description" content="${description}">`);
+      upsertMeta('og:description', `<meta property="og:description" content="${description}">`);
+      upsertMeta('og:title', `<meta property="og:title" content="${title}">`);
+      upsertMeta('twitter:title', `<meta name="twitter:title" content="${title}">`);
+      upsertMeta('twitter:description', `<meta name="twitter:description" content="${description}">`);
       upsertMeta('og:image', `<meta property="og:image" content="${ogImage}">`);
       upsertMeta('twitter:image', `<meta name="twitter:image" content="${ogImage}">`);
 
@@ -149,7 +180,7 @@ app.get('*', async (req, res) => {
       res.setHeader('Expires', '0');
       return res.status(200).send(html);
     } catch (err) {
-      console.error('Error preparing SEPA HTML:', err);
+      console.error('Error preparing route-specific HTML:', err);
       // fall back to default behavior
     }
   }
