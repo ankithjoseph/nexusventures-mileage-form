@@ -19,7 +19,7 @@ const FileUploadPage: React.FC = () => {
         </RequireAuth>
       </main>
 
-      <Footer title="Ireland Tax Year 2024" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
+      <Footer title="AML Compliance Form" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
   );
 };

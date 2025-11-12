@@ -201,7 +201,7 @@ const MileageBook = () => {
         </div>
       </main>
 
-      <Footer title="Business Mileage Logbook – Ireland Tax Year 2024" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
+      <Footer title="Business Mileage Logbook" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
   );
 };

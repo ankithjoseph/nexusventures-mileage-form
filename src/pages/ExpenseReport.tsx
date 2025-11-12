@@ -443,7 +443,7 @@ const ExpenseReport = () => {
         </Card>
       </main>
 
-      <Footer title="Business Expense Report - Ireland Tax Year 2024" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
+      <Footer title="Business Expense Report" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
   );
 };
