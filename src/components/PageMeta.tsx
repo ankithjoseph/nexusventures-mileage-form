@@ -9,7 +9,8 @@ type Props = {
 };
 
 const DEFAULT_TITLE_SUFFIX = 'Nexus Ventures';
-const DEFAULT_OG_IMAGE = '/assets/images/nexus-ventures-logo.png';
+// Use a public static image so crawlers can fetch it without JS-built paths
+const DEFAULT_OG_IMAGE = '/logo.png';
 
 const upsertMeta = (selector: string, attr: string, value: string) => {
   let el = document.querySelector(selector) as HTMLMetaElement | null;
