@@ -86,15 +86,75 @@ app.use(express.static(path.join(__dirname, 'dist'), {
 
 
 // Handle client-side routing - serve index.html for all non-API routes
-app.get('*', (req, res) => {
+app.get('*', async (req, res) => {
   // Skip API routes
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
-  // Prevent caching of the HTML shell so browsers will revalidate on each
-  // navigation and pick up new asset file names after deployments. This helps
-  // avoid situations where a client has a stale index.html that references
-  // non-existent hashed JS files (which causes MIME-type errors).
+
+  // Provide route-specific metadata for certain public routes so social
+  // crawlers (that don't execute JS) get a meaningful preview when links are
+  // shared. For example, /sepa-dd should expose SEPA-specific title/description.
+  if (req.path === '/sepa-dd' || req.path === '/sepa-dd/') {
+    const distIndex = path.join(__dirname, 'dist', 'index.html');
+    const fallbackIndex = path.join(__dirname, 'index.html');
+    try {
+      let html = '';
+      try {
+        html = await fs.readFile(distIndex, 'utf8');
+      } catch (e) {
+        html = await fs.readFile(fallbackIndex, 'utf8');
+      }
+
+      const sepaTitle = 'SEPA Direct Debit Mandate | Nexus Ventures';
+      const sepaDescription = 'Submit your SEPA Direct Debit mandate to Nexus Ventures.';
+      const ogImage = '/logo.png';
+      const canonicalHref = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+
+      // Replace or insert <title>
+      if (/\<title[^>]*\>.*?\<\/title\>/i.test(html)) {
+        html = html.replace(/\<title[^>]*\>.*?\<\/title\>/i, `<title>${sepaTitle}</title>`);
+      } else {
+        html = html.replace(/<head([^>]*)>/i, `<head$1>\n    <title>${sepaTitle}</title>`);
+      }
+
+      // Helper to upsert meta tags
+      const upsertMeta = (selectorKey, tagHtml) => {
+        const re = new RegExp(`<meta[^>]+(name|property)=["']${selectorKey}["'][^>]*>`, 'i');
+        if (re.test(html)) {
+          html = html.replace(re, tagHtml);
+        } else {
+          html = html.replace(/<head([^>]*)>/i, `<head$1>\n    ${tagHtml}`);
+        }
+      };
+
+      upsertMeta('description', `<meta name="description" content="${sepaDescription}">`);
+      upsertMeta('og:description', `<meta property="og:description" content="${sepaDescription}">`);
+      upsertMeta('og:title', `<meta property="og:title" content="${sepaTitle}">`);
+      upsertMeta('twitter:title', `<meta name="twitter:title" content="${sepaTitle}">`);
+      upsertMeta('twitter:description', `<meta name="twitter:description" content="${sepaDescription}">`);
+      upsertMeta('og:image', `<meta property="og:image" content="${ogImage}">`);
+      upsertMeta('twitter:image', `<meta name="twitter:image" content="${ogImage}">`);
+
+      // canonical
+      if (/\<link[^>]+rel=["']canonical["'][^>]*>/i.test(html)) {
+        html = html.replace(/\<link[^>]+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${canonicalHref}" />`);
+      } else {
+        html = html.replace(/<head([^>]*)>/i, `<head$1>\n    <link rel="canonical" href="${canonicalHref}" />`);
+      }
+
+      // Prevent caching of the HTML shell so crawlers always get latest
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      return res.status(200).send(html);
+    } catch (err) {
+      console.error('Error preparing SEPA HTML:', err);
+      // fall back to default behavior
+    }
+  }
+
+  // Default: send SPA shell
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
