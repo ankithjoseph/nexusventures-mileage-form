@@ -4,6 +4,7 @@ type Props = {
   title?: string;
   description?: string;
   image?: string;
+  ogTitle?: string;
   canonical?: string;
   children?: React.ReactNode;
 };
@@ -39,7 +40,7 @@ const upsertLink = (rel: string, href: string) => {
   link.setAttribute('href', href);
 };
 
-const PageMeta: React.FC<Props> = ({ title, description, image, canonical, children }) => {
+const PageMeta: React.FC<Props> = ({ title, description, image, ogTitle, canonical, children }) => {
   useEffect(() => {
     const fullTitle = title ? `${title} | ${DEFAULT_TITLE_SUFFIX}` : DEFAULT_TITLE_SUFFIX;
     document.title = fullTitle;
@@ -51,9 +52,10 @@ const PageMeta: React.FC<Props> = ({ title, description, image, canonical, child
       upsertMeta('meta[name="twitter:description"]', 'content', description);
     }
 
-    // title metas
-    upsertMeta('meta[property="og:title"]', 'content', fullTitle);
-    upsertMeta('meta[name="twitter:title"]', 'content', fullTitle);
+    // title metas (allow separate ogTitle)
+    const ogFullTitle = ogTitle ? `${ogTitle} | ${DEFAULT_TITLE_SUFFIX}` : fullTitle;
+    upsertMeta('meta[property="og:title"]', 'content', ogFullTitle);
+    upsertMeta('meta[name="twitter:title"]', 'content', ogFullTitle);
 
     // image
     const img = image ?? DEFAULT_OG_IMAGE;
@@ -71,7 +73,7 @@ const PageMeta: React.FC<Props> = ({ title, description, image, canonical, child
     upsertLink('canonical', canonicalHref);
 
     // no cleanup — allow next PageMeta to overwrite
-  }, [title, description, image, canonical]);
+  }, [title, description, image, canonical, ogTitle]);
 
   return <>{children}</>;
 };
