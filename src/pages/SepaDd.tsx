@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import jsPDF from 'jspdf';
 import nexusLogo from '@/assets/nexus-ventures-logo.png';
 import SignaturePad, { SignaturePadHandle } from '@/components/SignaturePad';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Header } from '@/components/Header';
@@ -64,6 +66,7 @@ const SepaDd: React.FC = () => {
   const [signatureDate, setSignatureDate] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -250,6 +253,9 @@ const SepaDd: React.FC = () => {
   };
 
   const downloadPdf = () => {
+    // Validate details before generating a PDF for download
+    if (!validateForPdf()) return;
+
     try {
       const doc = buildPdf();
       const date = new Date().toISOString().split('T')[0];
@@ -258,6 +264,35 @@ const SepaDd: React.FC = () => {
       console.error('Error generating PDF for download', err);
       toast({ title: 'PDF error', description: 'Unable to generate PDF for download', variant: 'destructive' });
     }
+  };
+
+  // Shared validation used for both download and submit flows
+  const validateForPdf = (): boolean => {
+    if (!name) {
+      toast({ title: 'Missing name', description: 'Please provide the customer name before generating or submitting the PDF.', variant: 'destructive' });
+      return false;
+    }
+    if (!iban) {
+      toast({ title: 'Missing IBAN', description: 'Please provide an IBAN before generating or submitting the PDF.', variant: 'destructive' });
+      return false;
+    }
+    if (!validateIBAN(iban)) {
+      toast({ title: 'Invalid IBAN', description: 'Please enter a valid IBAN (check characters and checksum).', variant: 'destructive' });
+      return false;
+    }
+    if (!bic || !validateBIC(bic)) {
+      toast({ title: 'Invalid BIC/SWIFT', description: 'Please enter a valid BIC (8 or 11 characters).', variant: 'destructive' });
+      return false;
+    }
+    if (!consent) {
+      toast({ title: 'Missing consent', description: 'Please confirm consent to direct debit before generating or submitting the PDF.', variant: 'destructive' });
+      return false;
+    }
+    if (!signatureData) {
+      toast({ title: 'Missing signature', description: 'Please provide a signature by drawing or uploading an image before generating or submitting the PDF.', variant: 'destructive' });
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -329,7 +364,9 @@ const SepaDd: React.FC = () => {
           const errJson = await resp.json().catch(() => ({}));
           toast({ title: 'Submit failed', description: errJson?.error || 'Unable to send SEPA details', variant: 'destructive' });
         } else {
+          // show modal thank-you and hide the form
           toast({ title: 'SEPA form submitted', description: 'Your SEPA Direct Debit details have been recorded and emailed.' });
+          setSubmitted(true);
         }
 
         setSubmitting(false);
@@ -356,19 +393,24 @@ const SepaDd: React.FC = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <Card className="p-6">
-          <h1 className="text-xl font-semibold mb-4">SEPA Direct Debit (SEPA-DD) form</h1>
-          <div className="bg-blue-50 border p-3 rounded">
-          <p className="text-sm text-muted-foreground mb-6 font-semibold"> By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd. <br/><br/>
-                As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank.  
-                <br/><br/>Please complete all the fields below marked *</p>
-          </div>
-          <br/>
-          <form onSubmit={handleSubmit} className="space-y-4 " autoComplete="off">
+          
+          
+          { !submitted ? (
+            <form onSubmit={handleSubmit} className="space-y-4 " autoComplete="off">
 
-            {/* Creditor identifier and legal text */}
-            <div className="bg-blue-50 border p-3 rounded">
-              <div className="mb-2 font-semibold">*Creditor Identifier: <span className="font-bold">IE75ZZZ362238</span></div>
-            </div>
+              <h1 className="text-xl font-semibold mb-4">SEPA Direct Debit (SEPA-DD) form</h1>
+
+              <div className="bg-blue-50 border p-3 rounded">
+                <p className="text-sm text-muted-foreground mb-6 font-semibold">By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd.
+                  <br /><br />
+                  As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank.
+                  <br /><br />Please complete all the fields below marked *</p>
+              </div>
+
+              {/* Creditor identifier and legal text */}
+              <div className="bg-blue-50 border p-3 rounded">
+                <div className="mb-2 font-semibold">*Creditor Identifier: <span className="font-bold">IE75ZZZ362238</span></div>
+              </div>
 
             {/* Customer details */}
             <div className="grid grid-cols-1 gap-4">
@@ -462,7 +504,37 @@ const SepaDd: React.FC = () => {
                   <FormActions onDownload={downloadPdf} onSubmit={() => handleSubmit()} isSubmitting={submitting} downloadLabel={'Download PDF'} submitLabel={submitting ? 'Submitting…' : 'Submit SEPA mandate'} downloadVariant="outline" />
                 </div>
             </div>
-          </form>
+            </form>
+          ) : null}
+
+          {/* Thank-you dialog shown after successful submit */}
+          <Dialog open={submitted} onOpenChange={() => { /* controlled: ignore external close attempts */ }}>
+            <DialogContent>
+              <DialogTitle>Thank you</DialogTitle>
+              <DialogDescription>
+                Your SEPA Direct Debit mandate has been submitted. We have emailed a copy to your email.
+              </DialogDescription>
+              <DialogFooter>
+                <Button onClick={() => {
+                  // reset form state for a new submission and close dialog
+                  setSubmitted(false);
+                  setName('');
+                  setAddress('');
+                  setCity('');
+                  setPostcode('');
+                  setCountry('');
+                  setIban('');
+                  setBic('');
+                  setPaymentType('');
+                  setSignatureData(null);
+                  setSignatureDate('');
+                  setConsent(false);
+                  setSubmitting(false);
+                  try { sigPadRef.current?.clear?.(); } catch (e) { /**/ }
+                }} className="mr-2">New form</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </Card>
       </main>
 

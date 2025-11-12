@@ -7,6 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 type Props = {
   onComplete?: (record: any) => void;
@@ -36,15 +45,47 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [existingAmlRecord, setExistingAmlRecord] = useState<any | null>(null);
+  const [existingPassportFiles, setExistingPassportFiles] = useState<string[]>([]);
+  const [existingProofFiles, setExistingProofFiles] = useState<string[]>([]);
+  const [existingRecordLoaded, setExistingRecordLoaded] = useState(false);
+  const [existingFiles, setExistingFiles] = useState<Record<string, string[]>>({});
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMime, setPreviewMime] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string | null>(null);
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
   
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassportFile(e.target.files?.[0] ?? null);
   };
 
+
+
   const handleProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProofFile(e.target.files?.[0] ?? null);
   };
+
+  const openPreview = (url: string, mime?: string | null, name?: string | null, isObjectUrl = false) => {
+    setPreviewUrl(url);
+    setPreviewMime(mime ?? (url.endsWith('.pdf') ? 'application/pdf' : url.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image/*' : null));
+    setPreviewName(name ?? null);
+    setPreviewOpen(true);
+    if (isObjectUrl) setObjectUrl(url);
+  };
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewUrl(null);
+    setPreviewMime(null);
+    setPreviewName(null);
+    if (objectUrl) {
+      try { URL.revokeObjectURL(objectUrl); } catch (e) {}
+      setObjectUrl(null);
+    }
+  };
+
 
   const validate = () => {
     const errors: Record<string, string> = {};
@@ -62,6 +103,20 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0 ? null : 'validation_error';
+  };
+
+  // Normalize various incoming date formats (ISO, timestamp, or yyyy-MM-dd) to the
+  // HTML date input format yyyy-MM-dd which PocketBase expects for date fields.
+  const formatToDateInput = (v: any) => {
+    if (!v) return '';
+    const s = String(v).trim();
+    // already in yyyy-MM-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // try parsing as Date
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    // fallback: take first 10 chars
+    return s.slice(0, 10);
   };
 
   // Load current user's profile and prefill fields when available
@@ -106,11 +161,73 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         if (ph && !phone) setPhone(ph);
         if (addr && !address) setAddress(addr);
         if (nat && !nationality) setNationality(nat);
-        if (dobVal && !dob) setDob(dobVal);
+  if (dobVal && !dob) setDob(formatToDateInput(dobVal));
         if (compName && !companyName) setCompanyName(compName);
-        if (compCRO && !companyCRO) setCompanyCRO(compCRO);
+  if (compCRO && !companyCRO) setCompanyCRO(compCRO);
 
         setProfileLoaded(true);
+        // after loading profile, attempt to fetch any existing AML application for this user
+        try {
+          const currentUserId = (pb.authStore as any)?.model?.id ?? (user as any)?.id ?? '';
+          if (currentUserId) {
+            try {
+              const list = await pb.collection('aml_applications').getList(1, 1, {
+                filter: `user = "${currentUserId}"`,
+                sort: '-created',
+              });
+              if (list && list.items && list.items.length > 0) {
+                const aml = list.items[0];
+                // Populate form fields with existing aml data if empty
+                // Overwrite form fields with the latest AML record values so the user edits
+                // the most recent submission by default.
+                setFullName(aml.full_name ?? '');
+                setEmail(aml.email ?? '');
+                setPhone(aml.phone ?? '');
+                setAddress(aml.address ?? '');
+                setClientType(aml.client_type === 'company' ? 'company' : 'individual');
+                setNationality(aml.nationality ?? '');
+                setDob(aml.date_of_birth ? formatToDateInput(aml.date_of_birth) : '');
+                setCompanyIncorpDate(aml.date_of_incorporation ? formatToDateInput(aml.date_of_incorporation) : '');
+                setCompanyName(aml.company_name ?? '');
+                setCompanyCRO(aml.company_cro ?? '');
+                setActivityDescription(aml.activity_description ?? '');
+                setConsent(Boolean(aml.consent));
+
+                // Files: detect any file-array fields on the record (PocketBase stores file fields as arrays of filenames)
+                const filesMap: Record<string, string[]> = {};
+                for (const k of Object.keys(aml)) {
+                  const v = (aml as any)[k];
+                  // If field is an array of strings, treat as file list
+                  if (Array.isArray(v) && v.length > 0 && v.every((x: any) => typeof x === 'string')) {
+                    filesMap[k] = v as string[];
+                    continue;
+                  }
+                  // Some PocketBase setups store a single filename as a string (not array).
+                  // Detect likely file fields by key name or by value looking like a filename/URL.
+                  if (typeof v === 'string' && v.trim().length > 0) {
+                    const key = k.toLowerCase();
+                    const looksLikeFilename = /\.[a-z0-9]{2,5}(?:\?|$)/i.test(v) || v.length < 255 && v.includes('.');
+                    if (key.includes('passport') || key.includes('proof') || key.includes('file') || key.includes('attachment') || looksLikeFilename) {
+                      filesMap[k] = [v as string];
+                    }
+                  }
+                }
+                setExistingFiles(filesMap);
+                // keep legacy named lists for compatibility
+                const passportFiles: string[] = filesMap['passport'] ?? filesMap['passport_files'] ?? filesMap['passport[]'] ?? [];
+                const proofFiles: string[] = filesMap['proof_of_address'] ?? filesMap['proof'] ?? [];
+                setExistingPassportFiles(passportFiles);
+                setExistingProofFiles(proofFiles);
+                setExistingAmlRecord(aml ?? null);
+                setExistingRecordLoaded(true);
+              }
+            } catch (e) {
+              // ignore fetch error — non-critical
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
       } catch (e) {
         // ignore
       }
@@ -142,63 +259,47 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   setUploadProgress(0);
     try {
       const formData = new FormData();
-      // use camelCase keys that the server expects
-      formData.append('fullName', fullName);
+
+      // Use the field IDs expected by the PocketBase collection (snake_case)
+      formData.append('full_name', fullName);
       formData.append('email', email);
       formData.append('phone', phone);
       formData.append('address', address);
-      formData.append('clientType', clientType);
+      formData.append('client_type', clientType);
       formData.append('nationality', nationality);
       if (clientType === 'individual') {
-        formData.append('dob', dob);
+        formData.append('date_of_birth', formatToDateInput(dob));
       } else {
-        formData.append('companyIncorpDate', companyIncorpDate);
+        formData.append('date_of_incorporation', formatToDateInput(companyIncorpDate));
       }
-      formData.append('companyName', companyName);
-      formData.append('companyCRO', companyCRO);
-      formData.append('activityDescription', activityDescription);
+      formData.append('company_name', companyName);
+      formData.append('company_cro', companyCRO);
+      formData.append('activity_description', activityDescription);
       formData.append('consent', consent ? '1' : '0');
-
-      const userId = (pb.authStore.model as any)?.id ?? (user as any)?.id ?? '';
-      if (!userId) throw new Error('No authenticated user found');
-      formData.append('user', userId);
 
       if (passportFile) formData.append('passport', passportFile, passportFile.name);
       if (proofFile) formData.append('proof_of_address', proofFile, proofFile.name);
 
-      // Use XHR to track upload progress and post to our server endpoint which will use an admin token
-      const uploadWithProgress = (fd: FormData, onProgress: (p: number) => void) => {
-        return new Promise<any>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/aml-submit');
-          // Attach the user's PocketBase token so the server can create the record as that user
-          try {
-            const token = (pb.authStore as any)?.token;
-            if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-          } catch (e) {
-            // ignore
-          }
-          xhr.upload.onprogress = (ev) => {
-            if (ev.lengthComputable) {
-              const percent = Math.round((ev.loaded / ev.total) * 100);
-              onProgress(percent);
-            }
-          };
-          xhr.onload = () => {
-            try {
-              const json = JSON.parse(xhr.responseText || '{}');
-              if (xhr.status >= 200 && xhr.status < 300) resolve(json);
-              else reject(json);
-            } catch (e) {
-              reject({ error: 'Invalid server response' });
-            }
-          };
-          xhr.onerror = () => reject({ error: 'Network error' });
-          xhr.send(fd);
-        });
-      };
+  // user authentication will be validated below and appended to the FormData
 
-  const resp = await uploadWithProgress(formData, (p) => setUploadProgress(p));
+  // Ensure the relation field 'user' is set — the collection schema requires it
+  const currentUserId = (pb.authStore.model as any)?.id ?? (user as any)?.id ?? '';
+  // Avoid logging sensitive ids in production; keep only minimal debug when needed
+  if (!currentUserId) throw new Error('You must be signed in to submit the form');
+  // For relation fields (maxSelect:1) PocketBase accepts the related record id as the field value
+  formData.append('user', currentUserId);
+
+        // Create or update the record directly with the PocketBase client as the authenticated user
+        // The SDK will attach the user's auth token automatically from pb.authStore
+        let resp: any = null;
+        if (existingAmlRecord && existingAmlRecord.id) {
+          // Update existing record (only append file fields if new files selected)
+          resp = await pb.collection('aml_applications').update(existingAmlRecord.id, formData);
+        } else {
+          // Ensure the relation field 'user' is set for new records
+          formData.append('user', currentUserId);
+          resp = await pb.collection('aml_applications').create(formData);
+        }
 
       // reset form on success
       setFullName('');
@@ -218,8 +319,41 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
       onComplete?.(resp.record ?? resp);
     } catch (err: any) {
-      console.error('Submit failed', err);
-      setError(err?.message ?? err?.error ?? 'Submission failed');
+  // Avoid logging full error objects which may contain sensitive data (tokens/ids).
+  console.error('Submit failed', err?.message ?? String(err));
+
+      // PocketBase validation errors are usually returned in err.response.data.data
+      const respData = err?.response?.data ?? err?.data ?? null;
+      if (respData && respData.data && typeof respData.data === 'object') {
+        const pbToField: Record<string, string> = {
+          full_name: 'fullName',
+          email: 'email',
+          phone: 'phone',
+          address: 'address',
+          client_type: 'clientType',
+          nationality: 'nationality',
+          date_of_birth: 'date',
+          date_of_incorporation: 'incorp',
+          company_name: 'company',
+          company_cro: 'company',
+          activity_description: 'activityDescription',
+          passport: 'passport',
+          proof_of_address: 'proof',
+          consent: 'consent',
+        };
+
+        const mappedErrors: Record<string, string> = {};
+        for (const [k, v] of Object.entries(respData.data)) {
+          const msg = Array.isArray(v) ? v.join(', ') : String(v);
+          const fieldKey = pbToField[k] ?? k;
+          mappedErrors[fieldKey] = msg;
+        }
+
+        setFieldErrors((prev) => ({ ...prev, ...mappedErrors }));
+        setError(respData?.raw ?? 'Validation failed');
+      } else {
+        setError(err?.message ?? err?.error ?? 'Submission failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -231,7 +365,17 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       <CardContent>
   <form id="aml-form" onSubmit={handleSubmit} className="space-y-6">
           {error && <div className="text-sm text-red-600">{error}</div>}
-          {profileLoaded && <div className="text-sm text-muted-foreground">Loaded your saved profile details — edit if needed.</div>}
+          {existingRecordLoaded && existingAmlRecord && (
+            <div className="p-3 border rounded-md bg-muted/50">
+              <div className="text-sm font-medium">Previously submitted AML application</div>
+              <div className="text-sm text-muted-foreground">Showing your most recent submission — fields are editable and you may re-upload files to replace existing ones.</div>
+              <div className="mt-2 text-sm">
+                <div><strong>Submitted:</strong> {new Date(existingAmlRecord.created || existingAmlRecord.createdAt || Date.now()).toLocaleString()}</div>
+              </div>
+            </div>
+          )}
+
+          
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -268,6 +412,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 <option value="individual">Individual</option>
                 <option value="company">Company</option>
               </select>
+              {fieldErrors.clientType && <div className="text-sm text-red-600 mt-1">{fieldErrors.clientType}</div>}
             </div>
             <div>
               <Label>{clientType === 'individual' ? 'Date of birth (for individuals)' : 'Date of incorporation (for companies)'}</Label>
@@ -298,14 +443,14 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Passport (required)</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={handlePassportChange} {...{ capture: 'environment' } as any} />
-              {passportFile && <div className="text-sm mt-1">Selected: {passportFile.name}</div>}
+              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handlePassportChange(e); const file = e.target.files?.[0]; if (file) openPreview(URL.createObjectURL(file), file.type, file.name, true); }} {...{ capture: 'environment' } as any} />
+              {passportFile && <div className="text-sm mt-1">Selected: {passportFile.name} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => passportFile && openPreview(URL.createObjectURL(passportFile), passportFile.type, passportFile.name, true)}>Preview</button></div>}
               {fieldErrors.passport && <div className="text-sm text-red-600 mt-1">{fieldErrors.passport}</div>}
             </div>
             <div>
               <Label>Proof of address (required)</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={handleProofChange} {...{ capture: 'environment' } as any} />
-              {proofFile && <div className="text-sm mt-1">Selected: {proofFile.name}</div>}
+              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handleProofChange(e); const file = e.target.files?.[0]; if (file) openPreview(URL.createObjectURL(file), file.type, file.name, true); }} {...{ capture: 'environment' } as any} />
+              {proofFile && <div className="text-sm mt-1">Selected: {proofFile.name} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => proofFile && openPreview(URL.createObjectURL(proofFile), proofFile.type, proofFile.name, true)}>Preview</button></div>}
               {fieldErrors.proof && <div className="text-sm text-red-600 mt-1">{fieldErrors.proof}</div>}
             </div>
           </div>
@@ -314,7 +459,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
             <Checkbox id="consent" checked={consent} onCheckedChange={(v) => setConsent(Boolean(v))} />
             <label htmlFor="consent" className="text-sm">I confirm the information is true and authorize Irish Tax Agents to use it for AML compliance.</label>
           </div>
-          {fieldErrors.consent && <div className="text-sm text-red-600 mt-1">{fieldErrors.consent}</div>}
+    {fieldErrors.consent && <div className="text-sm text-red-600 mt-1">{fieldErrors.consent}</div>}
 
           {uploadProgress > 0 && (
             <div className="w-full bg-gray-100 rounded h-2 mt-3">
@@ -331,6 +476,37 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           <Button type="submit" form="aml-form" disabled={loading}>{loading ? 'Submitting…' : 'Submit'}</Button>
         </div>
       </CardFooter>
+      {/* Preview dialog */}
+      <Dialog open={previewOpen} onOpenChange={(v) => { if (!v) closePreview(); setPreviewOpen(v); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{previewName ?? 'Preview file'}</DialogTitle>
+            <DialogDescription>{previewMime}</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {previewUrl && previewMime && previewMime.includes('image') && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={previewUrl} alt={previewName ?? 'preview'} className="max-h-[60vh] mx-auto" />
+            )}
+            {previewUrl && (!previewMime || previewMime === 'application/pdf' || previewUrl.endsWith('.pdf')) && (
+              <div className="w-full flex justify-center">
+                <iframe
+                  src={previewUrl}
+                  title={previewName ?? 'pdf-preview'}
+                  className="h-[70vh]"
+                  style={{ width: '100%', maxWidth: 'min(1200px, 95vw)', border: 'none' }}
+                />
+              </div>
+            )}
+            {!previewUrl && <div>No preview available</div>}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button onClick={() => closePreview()}>Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

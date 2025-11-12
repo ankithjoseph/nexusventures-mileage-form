@@ -60,7 +60,7 @@ npm run dev
 
 ### Option 3: Traditional Hosting
 
-Simply open [Lovable](https://lovable.dev/projects/09dd6b8d-6651-4a29-ad95-825344cc34ea) and click on Share -> Publish.
+Use your preferred static hosting provider or follow the build steps above to publish the site.
 
 ## 🔧 Environment Variables
 

@@ -15,7 +15,7 @@ const FormActions: React.FC<Props> = ({ onDownload, onSubmit, isSubmitting = fal
   return (
     <div className="flex justify-end items-center gap-3">
       {onDownload && (
-        <Button onClick={onDownload} variant={downloadVariant} size="lg">
+        <Button type="button" onClick={onDownload} variant={downloadVariant} size="lg">
           <Download className="w-4 h-4 mr-2" />
           {downloadLabel}
         </Button>

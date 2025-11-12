@@ -14,7 +14,7 @@ const FileUploadPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-semibold mb-4">AML Compliance Form</h1>
             <p className="text-sm text-muted-foreground mb-4">Provide the information and required documents for AML compliance.</p>
-            <FileUploadForm onComplete={(rec) => console.log('Uploaded record', rec)} />
+            <FileUploadForm onComplete={(rec) => { /* successful upload handler — avoid logging record to console */ }} />
           </div>
         </RequireAuth>
       </main>

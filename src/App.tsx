@@ -16,6 +16,7 @@ import CardPayment from "./pages/CardPayment";
 import FileUpload from "./pages/FileUpload";
 import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
+import PageMeta from '@/components/PageMeta';
 
 const queryClient = new QueryClient();
 
@@ -28,55 +29,20 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/login" element={<PageMeta title="Login" description="Sign in to your Nexus Ventures account."><Login /></PageMeta>} />
+              <Route path="/verify-email" element={<PageMeta title="Verify email" description="Verify your email to activate your account."><VerifyEmail /></PageMeta>} />
+              <Route path="/reset-password" element={<PageMeta title="Reset password" description="Reset your account password."><ResetPassword /></PageMeta>} />
 
               {/* Protected routes - require authentication */}
               <Route path="/" element={<ExternalRedirect url="https://www.nexusventures.eu" />} />
-              <Route
-                path="/expense-report"
-                element={
-                  <RequireAuth>
-                    <ExpenseReport />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/mileage-book"
-                element={
-                  <RequireAuth>
-                    <MileageBook />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/sepa-dd"
-                element={
-                  <RequireAuth>
-                    <SepaDd />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/card-payment"
-                element={
-                  <RequireAuth>
-                    <CardPayment />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/file-upload"
-                element={
-                  <RequireAuth>
-                    <FileUpload />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/expense-report" element={<RequireAuth><PageMeta title="Expense Report" description="Create and manage your expense reports."><ExpenseReport /></PageMeta></RequireAuth>} />
+              <Route path="/mileage-book" element={<RequireAuth><PageMeta title="Mileage Book" description="Log and manage mileage trips for tax purposes."><MileageBook /></PageMeta></RequireAuth>} />
+              <Route path="/sepa-dd" element={<RequireAuth><PageMeta title="SEPA Direct Debit" description="Submit SEPA Direct Debit mandate details for Nexus Ventures."><SepaDd /></PageMeta></RequireAuth>} />
+              <Route path="/card-payment" element={<RequireAuth><PageMeta title="Card Payment" description="Make a card payment securely."><CardPayment /></PageMeta></RequireAuth>} />
+              <Route path="/file-upload" element={<RequireAuth><PageMeta title="File Upload" description="Upload files securely to Nexus Ventures."><FileUpload /></PageMeta></RequireAuth>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<PageMeta title="Page not found" description="The page you were looking for could not be found."><NotFound /></PageMeta>} />
             </Routes>
           </AuthProvider>
         </BrowserRouter>
