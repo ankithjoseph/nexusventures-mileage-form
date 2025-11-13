@@ -47,6 +47,8 @@ const ThankYouDialog: React.FC<Props> = ({
           cancelButton: 'swal2-cancel',
         },
         focusConfirm: true,
+        // prevent closing with Esc
+        allowEscapeKey: false,
       });
 
       // Closed by confirm
