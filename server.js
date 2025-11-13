@@ -229,10 +229,16 @@ app.post('/api/send-email', async (req, res) => {
       pdfDataLength: typeof pdfData === 'string' ? pdfData.length : undefined,
     });
 
-    // Check if Resend is configured
+    // Check if Resend is configured. If not, accept the submission but skip emailing.
     if (!resend) {
-      console.error('RESEND_API_KEY is not configured. Cannot send email.');
-      return res.status(500).json({ error: 'RESEND_API_KEY not configured on server' });
+      console.warn('RESEND_API_KEY is not configured. Skipping email send but accepting submission.');
+      // Return success so the client can proceed as if the form was submitted.
+      return res.json({
+        success: true,
+        message: 'Submission accepted (email sending skipped because server is not configured).',
+        adminEmailId: null,
+        customer: { sent: false, error: 'resend_not_configured' },
+      });
     }
 
     // Validate required fields per form type

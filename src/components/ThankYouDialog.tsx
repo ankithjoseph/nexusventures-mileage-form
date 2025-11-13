@@ -1,15 +1,7 @@
-import React from 'react';
-import { CheckCircle } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import React, { useEffect } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 type Props = {
   open: boolean;
@@ -22,6 +14,8 @@ type Props = {
   onSecondary?: () => void;
 };
 
+// This component uses SweetAlert2 to display the modal when `open` becomes true.
+// It renders nothing to the DOM — all UI is handled by SweetAlert2.
 const ThankYouDialog: React.FC<Props> = ({
   open,
   onOpenChange,
@@ -32,34 +26,49 @@ const ThankYouDialog: React.FC<Props> = ({
   secondaryLabel,
   onSecondary,
 }) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <div className="flex flex-col items-center text-center gap-4 py-6 px-4">
-          <div className="bg-green-100 text-green-700 rounded-full p-3">
-            <CheckCircle className="h-8 w-8" />
-          </div>
+  useEffect(() => {
+    if (!open) return;
 
-          <DialogHeader className="items-center">
-            <DialogTitle className="text-2xl font-semibold">{title}</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground max-w-[40ch]">{description}</DialogDescription>
-          </DialogHeader>
+    (async () => {
+      const result = await Swal.fire({
+        title: String(title),
+        html: typeof description === 'string' ? description : renderToStaticMarkup(<div>{description}</div>),
+        icon: 'success',
+        showCancelButton: Boolean(secondaryLabel),
+        confirmButtonText: primaryLabel,
+        cancelButtonText: secondaryLabel || 'Cancel',
+        // prevent closing by clicking outside
+        allowOutsideClick: false,
+        customClass: {
+          popup: 'rounded-lg shadow-lg',
+          title: 'text-2xl font-semibold',
+          htmlContainer: 'text-sm text-muted-foreground',
+          confirmButton: 'swal2-confirm',
+          cancelButton: 'swal2-cancel',
+        },
+        focusConfirm: true,
+      });
 
-          <DialogFooter className="w-full justify-center gap-3">
-            {secondaryLabel && onSecondary ? (
-              <Button variant="outline" onClick={() => { onSecondary(); onOpenChange(false); }}>
-                {secondaryLabel}
-              </Button>
-            ) : null}
+      // Closed by confirm
+      if (result.isConfirmed) {
+        try { onPrimary?.(); } catch (e) { console.error(e); }
+        onOpenChange(false);
+        return;
+      }
 
-            <DialogClose asChild>
-              <Button size="lg" onClick={() => { onPrimary?.(); onOpenChange(false); }}>{primaryLabel}</Button>
-            </DialogClose>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+      // Closed by cancel button
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        try { onSecondary?.(); } catch (e) { console.error(e); }
+        onOpenChange(false);
+        return;
+      }
+
+      // any other dismiss (click outside, esc) — just close
+      onOpenChange(false);
+    })();
+  }, [open]);
+
+  return null;
 };
 
 export default ThankYouDialog;
