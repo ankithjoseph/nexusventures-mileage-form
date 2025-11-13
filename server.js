@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import PocketBase from 'pocketbase';
 import fs from 'fs/promises';
+import FormData from 'form-data';
 
 // Use global fetch when available (Node 18+). If not present, try to dynamically
 // import `node-fetch`. We avoid a static import so the server can run without
@@ -50,7 +51,6 @@ const ipRateMap = new Map(); // ip -> { count, firstAt }
 // PocketBase client for server-side operations
 const POCKETBASE_URL = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090';
 const pbServer = new PocketBase(POCKETBASE_URL);
-
 // Route -> metadata mapping used to inject server-side meta for crawlers
 const ROUTE_META = {
   '/expense-report': {
@@ -79,6 +79,134 @@ const ROUTE_META = {
     image: '/logo.png',
   },
 };
+
+// --- Utility helpers for PocketBase multipart persistence and email sending ---
+
+/** Return a fetch function to use for HTTP calls */
+async function getFetcher() {
+  if (fetchFn) return fetchFn;
+  if (globalThis.fetch) return globalThis.fetch;
+  // try dynamic import (should have been done earlier)
+  try {
+    const mod = await import('node-fetch');
+    return mod.default ?? mod;
+  } catch (e) {
+    throw new Error('No fetch available');
+  }
+}
+
+/** Apply PocketBase token from request headers/body onto a server-side pb client */
+function applyPbTokenFromRequest(pbClient, req) {
+  const authHeader = req.headers.authorization || req.headers['x-pb-token'] || req.body?.pb_token;
+  if (!authHeader) return null;
+  const token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : String(authHeader);
+  try {
+    if (pbClient.authStore && typeof pbClient.authStore.save === 'function') {
+      pbClient.authStore.save(token, null);
+      console.log('Applied PocketBase auth token from request for server-side operations');
+    } else if (pbClient.authStore) {
+      pbClient.authStore.token = token;
+      console.log('Set pbServer.authStore.token from request');
+    }
+    return token;
+  } catch (e) {
+    console.warn('Failed to apply PocketBase auth token from request (continuing unauthenticated):', e?.message || e);
+    return null;
+  }
+}
+
+/** Build a multipart FormData for an expense report. Returns { form, usingWebFormData } */
+function buildExpenseForm({ name, email, pps, type, req, base64, filename, pbClient }) {
+  // Prefer WHATWG/FormData + Blob when available
+  let form;
+  let usingWebFormData = false;
+  try {
+    if (typeof globalThis.FormData === 'function' && typeof globalThis.Blob === 'function') {
+      form = new globalThis.FormData();
+      usingWebFormData = true;
+    } else {
+      form = new FormData();
+    }
+  } catch (e) {
+    form = new FormData();
+  }
+
+  // Map Spanish -> English field ids
+  form.append('name', name || '');
+  form.append('email', email || '');
+  form.append('pps', pps || '');
+  form.append('trip_reason', req.body.motivo_viaje || '');
+  form.append('trip_date', req.body.fecha_viaje || '');
+  form.append('origin', req.body.origen || '');
+  form.append('destination', req.body.destino || '');
+  form.append('license_plate', req.body.matricula || '');
+  form.append('make_model', req.body.marca_modelo || '');
+  form.append('fuel_type', req.body.tipo_combustible || '');
+  form.append('co2_g_km', req.body.co2_g_km || '');
+  form.append('km_start', req.body.km_inicio || '');
+  form.append('km_end', req.body.km_final || '');
+  form.append('business_km', req.body.suma_km_trabajo || '');
+  form.append('tolls', req.body.peajes || '');
+  form.append('parking', req.body.parking || '');
+  form.append('fuel_cost', req.body.combustible || '');
+  form.append('meals', req.body.dietas || '');
+  form.append('accommodation', req.body.alojamiento || '');
+  form.append('notes', req.body.notas || '');
+  form.append('signature', req.body.firma || '');
+  form.append('signature_date', req.body.fecha_firma || '');
+  form.append('form_type', type || 'expense-report');
+
+  // Attach PDF
+  try {
+    const pdfBuffer = Buffer.from(base64, 'base64');
+    if (usingWebFormData) {
+      const pdfBlob = new globalThis.Blob([pdfBuffer], { type: 'application/pdf' });
+      form.append('pdf', pdfBlob, filename);
+    } else {
+      form.append('pdf', pdfBuffer, { filename, contentType: 'application/pdf' });
+    }
+  } catch (bufErr) {
+    console.warn('Failed to attach PDF buffer to FormData:', bufErr?.message || bufErr);
+  }
+
+  // user relation
+  try {
+    const suppliedUserId = req.body?.pb_user_id || req.body?.user || req.body?.userId || null;
+    const authStoreUserId = pbClient?.authStore?.model?.id ?? pbClient?.authStore?.model?.record?.id ?? null;
+    const userId = suppliedUserId || authStoreUserId;
+    if (userId) form.append('user', String(userId));
+  } catch (e) {
+    // non-fatal
+  }
+
+  return { form, usingWebFormData };
+}
+
+/** Post a multipart form to PocketBase records API and return parsed JSON */
+async function postFormToPocketBase({ form, usingWebFormData, pbClient }) {
+  const fetcher = await getFetcher();
+  const pbUrl = `${POCKETBASE_URL.replace(/\/$/, '')}/api/collections/expense_reports/records`;
+  // headers: if node form-data, include boundary via getHeaders(); for web FormData, let fetch set it
+  const headers = (typeof form.getHeaders === 'function') ? Object.assign({}, form.getHeaders()) : {};
+  try {
+    const token = pbClient?.authStore?.token;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {}
+
+  const resp = await fetcher(pbUrl, { method: 'POST', headers, body: form });
+  const text = await resp.text();
+  let parsed = null;
+  try { parsed = JSON.parse(text); } catch (e) { parsed = text; }
+  if (!resp.ok) {
+    const details = (typeof parsed === 'string') ? parsed : JSON.stringify(parsed);
+    const err = new Error(`PocketBase HTTP ${resp.status}: ${details}`);
+    err.response = parsed;
+    throw err;
+  }
+  return parsed;
+}
+
+// --- end helpers ---
 
 
 
@@ -111,6 +239,18 @@ function checkAndIncrRate(map, key, max) {
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1y',
 }));
+
+// Lightweight health/check endpoint to verify PocketBase reachability from the server.
+app.get('/api/pb-health', async (req, res) => {
+  try {
+    const url = `${POCKETBASE_URL.replace(/\/$/, '')}/api/collections`;
+    const resp = await fetch(url, { method: 'GET' });
+    const text = await resp.text();
+    return res.json({ ok: resp.ok, status: resp.status, bodyPreview: text.slice(0, 200), tokenPresent: Boolean(pbServer?.authStore?.token) });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
 
 
 
@@ -229,16 +369,11 @@ app.post('/api/send-email', async (req, res) => {
       pdfDataLength: typeof pdfData === 'string' ? pdfData.length : undefined,
     });
 
-    // Check if Resend is configured. If not, accept the submission but skip emailing.
-    if (!resend) {
-      console.warn('RESEND_API_KEY is not configured. Skipping email send but accepting submission.');
-      // Return success so the client can proceed as if the form was submitted.
-      return res.json({
-        success: true,
-        message: 'Submission accepted (email sending skipped because server is not configured).',
-        adminEmailId: null,
-        customer: { sent: false, error: 'resend_not_configured' },
-      });
+    // Determine whether emailing is available. If not, we'll skip emailing but
+    // continue to persist the submission (so PocketBase still receives records).
+    const skipEmail = !resend;
+    if (skipEmail) {
+      console.warn('RESEND_API_KEY is not configured. Skipping email send but proceeding to persist submission to PocketBase.');
     }
 
     // Validate required fields per form type
@@ -349,36 +484,65 @@ app.post('/api/send-email', async (req, res) => {
     }
 
     try {
-      // First: send admin copy
-      const adminResp = await resend.emails.send({
-        from: FROM,
-        to: [ADMIN_EMAIL],
-        subject,
-        html,
-        attachments: [
-          {
-            filename: filename,
-            content: base64,
-            type: 'application/pdf',
-          },
-        ],
-      });
+      // First: send admin copy (only when email sending is configured)
+      let adminEmailId = null;
+      if (!skipEmail) {
+        const adminResp = await resend.emails.send({
+          from: FROM,
+          to: [ADMIN_EMAIL],
+          subject,
+          html,
+          attachments: [
+            {
+              filename: filename,
+              content: base64,
+              type: 'application/pdf',
+            },
+          ],
+        });
 
-      const adminEmailId = getEmailId(adminResp);
-      if (!adminEmailId) {
-        console.error('Unexpected Resend response for admin:', adminResp);
-        return res.status(500).json({ error: 'Failed to send admin email', details: adminResp });
+        adminEmailId = getEmailId(adminResp);
+        if (!adminEmailId) {
+          console.error('Unexpected Resend response for admin:', adminResp);
+          return res.status(500).json({ error: 'Failed to send admin email', details: adminResp });
+        }
+      }
+
+      // Persist submission to PocketBase collection `expense_reports` (best-effort).
+      // The client sends the full form in the request body (see frontend). We'll attempt to
+      // apply a logged-in user's auth token when provided, set the `user` relation, and upload the PDF into a file field.
+      let pbSaved = { saved: false, id: null, error: null };
+      try {
+        // Apply token (if present) to pbServer
+        applyPbTokenFromRequest(pbServer, req);
+
+        console.log('Preparing to persist submission to PocketBase collection "expense_reports"');
+        console.log('PocketBase base URL:', POCKETBASE_URL);
+        console.log('pbServer.authStore present:', !!pbServer?.authStore);
+        try { console.log('pbServer.authStore.token present:', Boolean(pbServer?.authStore?.token)); } catch (tErr) {}
+
+        // Build form and POST via helper functions
+        const { form, usingWebFormData } = buildExpenseForm({ name, email, pps, type, req, base64, filename, pbClient: pbServer });
+        const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer });
+        pbSaved = { saved: true, id: pbResult?.id ?? null, error: null };
+        console.log('Saved expense report to PocketBase (with file):', pbSaved.id ?? '(no id)');
+      } catch (pbErr) {
+        pbSaved = { saved: false, id: null, error: String(pbErr?.message || pbErr) };
+        console.warn('PocketBase save (expense_reports) failed (non-fatal):', pbErr?.message || pbErr);
       }
 
       // Then: attempt to send customer copy, but don't fail the whole request if it errors
       let customerResult = { sent: false };
-      try {
-        // validate simple email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          customerResult = { sent: false, error: 'Invalid customer email' };
-          console.warn('Skipping customer send: invalid email', email);
-        } else {
+      if (skipEmail) {
+        customerResult = { sent: false, error: 'resend_not_configured' };
+      } else {
+        try {
+          // validate simple email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            customerResult = { sent: false, error: 'Invalid customer email' };
+            console.warn('Skipping customer send: invalid email', email);
+          } else {
             // Build user-facing email based on form type to match provided templates
             const today = new Date().toISOString().split('T')[0];
             let customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;
@@ -495,25 +659,27 @@ app.post('/api/send-email', async (req, res) => {
                 },
               ],
             });
-          const customerEmailId = getEmailId(customerResp);
-          if (customerEmailId) {
-            customerResult = { sent: true, emailId: customerEmailId };
-          } else {
-            customerResult = { sent: false, error: customerResp };
-            console.error('Unexpected Resend response for customer:', customerResp);
+            const customerEmailId = getEmailId(customerResp);
+            if (customerEmailId) {
+              customerResult = { sent: true, emailId: customerEmailId };
+            } else {
+              customerResult = { sent: false, error: customerResp };
+              console.error('Unexpected Resend response for customer:', customerResp);
+            }
           }
+        } catch (custErr) {
+          console.error('Customer send error:', custErr);
+          customerResult = { sent: false, error: custErr?.message || String(custErr) };
         }
-      } catch (custErr) {
-        console.error('Customer send error:', custErr);
-        customerResult = { sent: false, error: custErr?.message || String(custErr) };
       }
 
-      // Return success for admin and include customer result so UI can surface partial failures
+      // Return success for admin and include customer result and PocketBase persistence info so UI can surface partial failures
       return res.json({
         success: true,
         message: 'Admin email sent',
         adminEmailId,
         customer: customerResult,
+        pocketbase: pbSaved,
       });
 
     } catch (err) {

@@ -48,7 +48,7 @@ const ThankYouDialog: React.FC<Props> = ({
         },
         focusConfirm: true,
         // prevent closing with Esc
-        allowEscapeKey: false,
+        //allowEscapeKey: false,
       });
 
       // Closed by confirm

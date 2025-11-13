@@ -12,6 +12,7 @@ import Footer from '@/components/Footer';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { generateExpensePDF } from '@/utils/pdfGenerator';
 import FormActions from '@/components/FormActions';
+import pb from '@/lib/pocketbase';
 
 interface ExpenseReportData {
   name: string;
@@ -122,19 +123,28 @@ const ExpenseReport = () => {
         const base64PDF = result?.toString().split(',')[1];
 
         // Send email with PDF attachment
+        // Send the full form data to the server so it can email and persist a record
+        // Include the current PocketBase user id so the server can attach the relation
         const emailData = {
-          name: formData.name,
-          email: formData.email,
-          pps: formData.pps,
+          ...formData,
           pdfData: base64PDF,
-          type: 'expense-report'
+          type: 'expense-report',
+          pb_user_id: (pb.authStore as any)?.model?.id ?? null,
         };
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        try {
+          const token = (pb.authStore as any)?.token;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } catch (e) {
+          // ignore if authStore not available
+        }
 
         const response = await fetch('/api/send-email', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(emailData),
         });
 
