@@ -317,7 +317,7 @@ const CardPayment: React.FC = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <Card className="p-6">
-          <h1 className="text-xl font-semibold mb-4">Card Payment form</h1>
+          <h1 className="text-xl font-semibold mb-4 text-primary">Card Payment form</h1>
           <div className="bg-blue-50 border p-3 rounded">
             <p className="text-sm text-muted-foreground mb-6 font-semibold">Legal Text: By signing this mandate form, you authorise (A) Irish Tax Agents LTD. To send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Irish Tax Agents LTD.<br/><br/>
     As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank.<br/><br/>

@@ -43,7 +43,7 @@ const ThankYouDialog: React.FC<Props> = ({
           popup: 'rounded-lg shadow-lg',
           title: 'text-2xl font-semibold',
           htmlContainer: 'text-sm text-muted-foreground',
-          confirmButton: 'swal2-confirm',
+          confirmButton: 'w-full sm:w-auto py-2 px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md',
           cancelButton: 'swal2-cancel',
         },
         focusConfirm: true,

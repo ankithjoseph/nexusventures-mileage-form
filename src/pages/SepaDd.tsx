@@ -398,7 +398,7 @@ const SepaDd: React.FC = () => {
           { !submitted ? (
             <form onSubmit={handleSubmit} className="space-y-4 " autoComplete="off">
 
-              <h1 className="text-xl font-semibold mb-4">SEPA Direct Debit (SEPA-DD) form</h1>
+              <h1 className="text-xl font-semibold mb-4 text-primary">SEPA Direct Debit (SEPA-DD) form</h1>
 
               <div className="bg-blue-50 border p-3 rounded">
                 <p className="text-sm text-muted-foreground mb-6 font-semibold">By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd.

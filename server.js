@@ -103,10 +103,10 @@ function applyPbTokenFromRequest(pbClient, req) {
   try {
     if (pbClient.authStore && typeof pbClient.authStore.save === 'function') {
       pbClient.authStore.save(token, null);
-      console.log('Applied PocketBase auth token from request for server-side operations');
+      //console.log('Applied PocketBase auth token from request for server-side operations');
     } else if (pbClient.authStore) {
       pbClient.authStore.token = token;
-      console.log('Set pbServer.authStore.token from request');
+      //console.log('Set pbServer.authStore.token from request');
     }
     return token;
   } catch (e) {
@@ -249,6 +249,71 @@ app.get('/api/pb-health', async (req, res) => {
     return res.json({ ok: resp.ok, status: resp.status, bodyPreview: text.slice(0, 200), tokenPresent: Boolean(pbServer?.authStore?.token) });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Proxy endpoint to fetch protected PocketBase files server-side.
+// Expects JSON body: { collection, recordId, filename }
+// The client must forward the PocketBase auth token in the Authorization header
+// (Bearer <token>) or x-pb-token to allow the server to perform the request
+// using the same authenticated session. The server will exchange a short-lived
+// file token and fetch the file from PocketBase, then stream the file bytes
+// back to the client. This keeps the PocketBase file token and direct file
+// URLs off the browser, and lets the server enforce access checks if desired.
+app.post('/api/pb-file', async (req, res) => {
+  try {
+    const { collection, recordId, filename } = req.body || {};
+    if (!collection || !recordId || !filename) return res.status(400).json({ error: 'missing parameters' });
+
+    // Apply the incoming user's PocketBase token to the server-side client so
+    // pbServer operations run in the context of that user.
+    const applied = applyPbTokenFromRequest(pbServer, req);
+    if (!applied) return res.status(401).json({ error: 'missing auth token' });
+
+    const fetcher = await getFetcher();
+
+    // Try to request a short-lived file token from PocketBase server-side.
+    let fileToken = null;
+    try {
+      if (pbServer.files && typeof pbServer.files.getToken === 'function') {
+        fileToken = await pbServer.files.getToken();
+      }
+    } catch (e) {
+      // ignore — we'll attempt a direct fetch with Authorization header as fallback
+      fileToken = null;
+    }
+
+    const base = POCKETBASE_URL.replace(/\/$/, '');
+    const url = `${base}/api/files/${collection}/${recordId}/${encodeURIComponent(filename)}${fileToken ? `?token=${encodeURIComponent(fileToken)}` : ''}`;
+
+    // Fetch the file bytes from PocketBase using the short-lived token (if present)
+    // or using the current server-side authenticated session (pbServer.authStore.token)
+    const headers = {};
+    // If no fileToken, include Authorization header from the applied pbServer auth
+    try {
+      if (!fileToken && pbServer?.authStore?.token) headers['Authorization'] = `Bearer ${pbServer.authStore.token}`;
+    } catch (e) {}
+
+    const resp = await fetcher(url, { method: 'GET', headers });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      return res.status(resp.status).json({ ok: false, status: resp.status, body: text.slice ? text.slice(0, 200) : text });
+    }
+
+    // Read full body as arrayBuffer and send as binary response
+    const arrayBuffer = await resp.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = resp.headers.get('content-type') || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    // Don't cache user-specific files
+    res.setHeader('Cache-Control', 'no-store');
+    // Let browser decide how to show it (inline) but include filename
+    res.setHeader('Content-Disposition', `inline; filename="${filename.replace(/\"/g, '')}"`);
+    res.setHeader('Content-Length', String(buffer.length));
+    return res.status(200).send(buffer);
+  } catch (err) {
+    console.error('Error in /api/pb-file', err);
+    return res.status(500).json({ error: String(err) });
   }
 });
 

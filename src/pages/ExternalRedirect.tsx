@@ -15,7 +15,8 @@ const APP_ROUTES = [
   { path: '/mileage-book', label: 'Mileage Book' },
   { path: '/sepa-dd', label: 'SEPA Direct Debit' },
   { path: '/card-payment', label: 'Card Payment' },
-  { path: '/file-upload', label: 'File Upload' },
+  { path: '/aml-form', label: 'File Upload' },
+  { path: '/company-incorporation', label: 'Company Incorporation' },
   { path: '/404', label: '404 / Not found' },
 ];
 

@@ -7,16 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from '@/components/ui/dialog';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import ThankYouDialog from '@/components/ThankYouDialog';
+import { Badge } from '@/components/ui/badge';
 
 type Props = {
   onComplete?: (record: any) => void;
@@ -39,6 +33,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [passportIsExisting, setPassportIsExisting] = useState(false);
+  const [proofIsExisting, setProofIsExisting] = useState(false);
 
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,40 +47,169 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   const [existingProofFiles, setExistingProofFiles] = useState<string[]>([]);
   const [existingRecordLoaded, setExistingRecordLoaded] = useState(false);
   const [existingFiles, setExistingFiles] = useState<Record<string, string[]>>({});
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewMime, setPreviewMime] = useState<string | null>(null);
-  const [previewName, setPreviewName] = useState<string | null>(null);
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [existingFilesAttached, setExistingFilesAttached] = useState(false);
+  
   const [thankYouOpen, setThankYouOpen] = useState(false);
   
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassportFile(e.target.files?.[0] ?? null);
+    setPassportIsExisting(false);
+  };
+
+  // When an existing AML record is present, attach stored files as File objects
+  // to the form state so they are included in FormData on submit if the user
+  // doesn't choose replacements.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!existingAmlRecord || existingFilesAttached) return;
+      try {
+        // attach passport
+        if (!passportFile && existingPassportFiles && existingPassportFiles.length > 0) {
+          const fname = existingPassportFiles[0];
+          try {
+            const blob = await fetchFileBlob('aml_applications', existingAmlRecord.id, fname);
+            if (mounted && blob) {
+              try {
+                const f = new File([blob], fname, { type: blob.type || 'application/octet-stream' });
+                setPassportFile(f);
+                setPassportIsExisting(true);
+              } catch (e) {
+                // ignore file creation errors
+              }
+            }
+          } catch (e) {
+            console.warn('[FileFetch] failed to attach passport', e);
+          }
+        }
+
+        // attach proof
+        if (!proofFile && existingProofFiles && existingProofFiles.length > 0) {
+          const fname = existingProofFiles[0];
+          try {
+            const blob = await fetchFileBlob('aml_applications', existingAmlRecord.id, fname);
+            if (mounted && blob) {
+              try {
+                const f = new File([blob], fname, { type: blob.type || 'application/octet-stream' });
+                setProofFile(f);
+                setProofIsExisting(true);
+              } catch (e) {
+                // ignore file creation errors
+              }
+            }
+          } catch (e) {
+            console.warn('[FileFetch] failed to attach proof', e);
+          }
+        }
+      } catch (e) {
+        // attach existing files failed silently
+      } finally {
+        if (mounted) setExistingFilesAttached(true);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [existingAmlRecord, existingPassportFiles, existingProofFiles, existingFilesAttached]);
+
+  // Helper to fetch a file blob via our server proxy and return it
+  const fetchFileBlob = async (collection: string, recordId: string, filename: string): Promise<Blob | null> => {
+    try {
+      const token = (pb.authStore as any)?.token;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const resp = await fetch('/api/pb-file', { method: 'POST', headers, body: JSON.stringify({ collection, recordId, filename }) });
+      if (!resp.ok) return null;
+      return await resp.blob();
+    } catch (e) {
+      return null;
+    }
   };
 
 
 
   const handleProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProofFile(e.target.files?.[0] ?? null);
+    setProofIsExisting(false);
   };
 
-  const openPreview = (url: string, mime?: string | null, name?: string | null, isObjectUrl = false) => {
-    setPreviewUrl(url);
-    setPreviewMime(mime ?? (url.endsWith('.pdf') ? 'application/pdf' : url.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image/*' : null));
-    setPreviewName(name ?? null);
-    setPreviewOpen(true);
-    if (isObjectUrl) setObjectUrl(url);
-  };
+  // Show preview using SweetAlert2. Accepts a Blob (File) or a URL string.
+  const showPreviewSwal = (source: Blob | string, name?: string | null, mime?: string | null) => {
+    let url = '';
+    let createdObjectUrl = false;
+    try {
+      if (typeof source === 'string') {
+        url = source;
+      } else {
+        url = URL.createObjectURL(source);
+        createdObjectUrl = true;
+        mime = mime || (source as Blob).type || mime;
+      }
 
-  const closePreview = () => {
-    setPreviewOpen(false);
-    setPreviewUrl(null);
-    setPreviewMime(null);
-    setPreviewName(null);
-    if (objectUrl) {
-      try { URL.revokeObjectURL(objectUrl); } catch (e) {}
-      setObjectUrl(null);
+      const isImage = !!(mime && mime.startsWith('image')) || /\.(jpg|jpeg|png|gif)$/i.test(name || '');
+      const isPdf = (mime === 'application/pdf') || (name || '').toLowerCase().endsWith('.pdf') || url.toLowerCase().endsWith('.pdf');
+
+  const container = document.createElement('div');
+  container.style.width = '100%';
+  container.style.display = 'flex';
+  container.style.justifyContent = 'center';
+  container.style.alignItems = 'center';
+  container.style.padding = '0';
+
+      if (isImage) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = name || 'preview';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '70vh';
+        img.style.objectFit = 'contain';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        container.appendChild(img);
+      } else if (isPdf) {
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.title = name || 'pdf-preview';
+        iframe.style.width = '100%';
+        iframe.style.height = '70vh';
+        iframe.style.border = 'none';
+        iframe.style.display = 'block';
+        iframe.style.margin = '0 auto';
+        container.appendChild(iframe);
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = name || 'Open file';
+        container.appendChild(link);
+      }
+
+      Swal.fire({
+        title: name ?? 'Preview file',
+        html: container,
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        showCloseButton: false,
+        width: '90%',
+        customClass: {
+          popup: 'max-w-[95vw]',
+          // reduce title size to better fit mobile
+          title: 'text-sm sm:text-base',
+          // match shadcn Button default variant styling
+          confirmButton: 'w-full sm:w-auto py-2 px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md',
+        },
+        didClose: () => {
+          if (createdObjectUrl) {
+            try { URL.revokeObjectURL(url); } catch (e) {}
+          }
+        }
+      });
+    } catch (err) {
+      // fallback: open in new tab
+      try {
+        const fallbackUrl = typeof source === 'string' ? source : '';
+        if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener');
+      } catch (e) {}
     }
   };
 
@@ -221,6 +346,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 setExistingPassportFiles(passportFiles);
                 setExistingProofFiles(proofFiles);
                 setExistingAmlRecord(aml ?? null);
+                // debug: log that we found an existing AML record and file keys (non-sensitive)
+                // Found existing AML record; internal state populated (no verbose logging)
                 setExistingRecordLoaded(true);
               }
             } catch (e) {
@@ -236,6 +363,167 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
     })();
     return () => { mounted = false; };
   }, [user]);
+
+  // Helper to (re)load the latest AML application from the server for the
+  // currently authenticated user and populate form state. Used after a
+  // successful submit when the user closes the thank-you dialog.
+  const reloadLatestAml = async () => {
+    try {
+      const currentUserId = (pb.authStore as any)?.model?.id ?? (user as any)?.id ?? '';
+      if (!currentUserId) return;
+      const list = await pb.collection('aml_applications').getList(1, 1, {
+        filter: `user = "${currentUserId}"`,
+        sort: '-created',
+      });
+      if (!list || !list.items || list.items.length === 0) return;
+      const aml = list.items[0];
+
+      // Populate form with server values
+      setFullName(aml.full_name ?? '');
+      setEmail(aml.email ?? '');
+      setPhone(aml.phone ?? '');
+      setAddress(aml.address ?? '');
+      setClientType(aml.client_type === 'company' ? 'company' : 'individual');
+      setNationality(aml.nationality ?? '');
+      setDob(aml.date_of_birth ? formatToDateInput(aml.date_of_birth) : '');
+      setCompanyIncorpDate(aml.date_of_incorporation ? formatToDateInput(aml.date_of_incorporation) : '');
+      setCompanyName(aml.company_name ?? '');
+      setCompanyCRO(aml.company_cro ?? '');
+      setActivityDescription(aml.activity_description ?? '');
+      setConsent(Boolean(aml.consent));
+
+      // detect file fields as before
+      const filesMap: Record<string, string[]> = {};
+      for (const k of Object.keys(aml)) {
+        const v = (aml as any)[k];
+        if (Array.isArray(v) && v.length > 0 && v.every((x: any) => typeof x === 'string')) {
+          filesMap[k] = v as string[];
+          continue;
+        }
+        if (typeof v === 'string' && v.trim().length > 0) {
+          const key = k.toLowerCase();
+          const looksLikeFilename = /\.[a-z0-9]{2,5}(?:\?|$)/i.test(v) || v.length < 255 && v.includes('.');
+          if (key.includes('passport') || key.includes('proof') || key.includes('file') || key.includes('attachment') || looksLikeFilename) {
+            filesMap[k] = [v as string];
+          }
+        }
+      }
+
+      setExistingFiles(filesMap);
+      const passportFiles: string[] = filesMap['passport'] ?? filesMap['passport_files'] ?? filesMap['passport[]'] ?? [];
+      const proofFiles: string[] = filesMap['proof_of_address'] ?? filesMap['proof'] ?? [];
+      setExistingPassportFiles(passportFiles);
+      setExistingProofFiles(proofFiles);
+      setExistingAmlRecord(aml ?? null);
+      setExistingRecordLoaded(true);
+
+      // reset attachment flags so the attachment effect will re-run and attach
+      // the server-provided blobs as File objects
+      setExistingFilesAttached(false);
+      setPassportIsExisting(false);
+      setProofIsExisting(false);
+      setPassportFile(null);
+      setProofFile(null);
+    } catch (e) {
+      // non-fatal
+      console.error('Failed to reload latest AML', e);
+    }
+  };
+
+  // Helper to construct a file URL for files stored on PocketBase
+  const fileUrl = (collection: string, recordId: string, filename: string) => {
+    try {
+      // pb.baseUrl is the configured PocketBase url (e.g. https://...)
+      const base = (pb as any).baseUrl || (pb as any).client?.baseUrl || '';
+      if (base) return `${base.replace(/\/$/, '')}/api/files/${collection}/${recordId}/${encodeURIComponent(filename)}`;
+      // fallback to PocketBase SDK helper if available
+      if (typeof (pb as any).getFileUrl === 'function') return (pb as any).getFileUrl({ collectionId: collection, id: recordId } as any, filename);
+    } catch (e) {
+      // ignore
+    }
+    return '';
+  };
+
+  // Fetch file using a PocketBase file token to access protected files.
+  // Uses pb.files.getToken() and pb.files.getURL(record, filename, { token }) when available.
+  const fetchAndOpenFile = async (collection: string, recordId: string, filename: string) => {
+    // Ensure we have a valid auth session. If token expired try to refresh it so
+    // pb.files.getToken() will succeed with the current user's credentials.
+    try {
+      let authToken = (pb.authStore as any)?.token;
+      if (!authToken) {
+        try {
+          await pb.collection('users').authRefresh();
+        } catch (_) {}
+        authToken = (pb.authStore as any)?.token;
+      }
+      if (!authToken) {
+        window.location.href = '/login';
+        return;
+      }
+
+      // Use server-side proxy endpoint to fetch and open the file
+      try {
+        const token = (pb.authStore as any)?.token;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const resp = await fetch('/api/pb-file', { method: 'POST', headers, body: JSON.stringify({ collection, recordId, filename }) });
+        if (!resp.ok) {
+          // fallback: open direct file URL (may fail due to permissions)
+          const url = fileUrl(collection, recordId, filename);
+          window.open(url, '_blank', 'noopener');
+          return;
+        }
+  const blob = await resp.blob();
+  showPreviewSwal(blob, filename, blob.type || undefined);
+        return;
+      } catch (err) {
+        console.error('[FileFetch] server proxy fetch failed', err);
+        const url = fileUrl(collection, recordId, filename);
+        window.open(url, '_blank', 'noopener');
+        return;
+      }
+    } catch (e) {
+      // getToken failed — fall back to previous behavior using Authorization header
+      const url = fileUrl(collection, recordId, filename);
+      try {
+        const token = (pb.authStore as any)?.token;
+        const headers: Record<string, string> = {};
+        if (!token) {
+          // try refresh once more
+          try { await pb.collection('users').authRefresh(); } catch (refreshErr) { console.warn('[FileFetch] fallback authRefresh failed', refreshErr); }
+        }
+        const finalToken = (pb.authStore as any)?.token;
+        if (finalToken) headers['Authorization'] = `Bearer ${finalToken}`;
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const blob = await resp.blob();
+  showPreviewSwal(blob, filename, blob.type || undefined);
+        return;
+      } catch (err) {
+        console.error('[FileFetch] Authorization fallback failed', err);
+        // If we got a 404, fetch the record from PocketBase and dump its file fields to the console
+        try {
+          const is404 = String(err).includes('404');
+          if (is404) {
+            try {
+              const rec = await pb.collection(collection).getOne(recordId);
+              // fetched record for 404 investigation (no verbose log)
+            } catch (recErr) {
+              // ignore
+            }
+          }
+        } catch (logErr) {
+          // ignore
+        }
+
+        if (url) {
+          window.open(url, '_blank', 'noopener');
+          return;
+        }
+      }
+    }
+  };
 
   
 
@@ -303,25 +591,13 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           resp = await pb.collection('aml_applications').create(formData);
         }
 
-      // reset form on success
-      setFullName('');
-      setEmail('');
-      setPhone('');
-      setAddress('');
-      setClientType('individual');
-      setNationality('');
-      setDob('');
-      setCompanyName('');
-      setCompanyCRO('');
-      setActivityDescription('');
-      setPassportFile(null);
-      setProofFile(null);
-      setConsent(false);
-  setUploadProgress(0);
-
-      onComplete?.(resp.record ?? resp);
-      // show thank-you dialog
-      setThankYouOpen(true);
+    // do not clear the form immediately — keep values visible so the user can
+    // verify what was submitted. We'll clear / reload after the user closes
+    // the thank-you dialog (see handleThankYouClose below).
+    setUploadProgress(0);
+    onComplete?.(resp.record ?? resp);
+    // show thank-you dialog
+    setThankYouOpen(true);
     } catch (err: any) {
   // Avoid logging full error objects which may contain sensitive data (tokens/ids).
   console.error('Submit failed', err?.message ?? String(err));
@@ -364,17 +640,18 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   };
 
   return (
-  <Card className="w-full max-w-3xl mx-auto">
-      <CardHeader />
+  <Card className="container mx-auto px-4 py-8 max-w-4xl flex-1">
       <CardContent>
+        <h1 className="text-2xl font-semibold mb-4 text-primary">AML Compliance Form</h1>
+    <p className="text-sm text-muted-foreground mb-4">Provide the information and required documents for AML compliance.</p>
+    
   <form id="aml-form" onSubmit={handleSubmit} className="space-y-6">
-          {error && <div className="text-sm text-red-600">{error}</div>}
           {existingRecordLoaded && existingAmlRecord && (
-            <div className="p-3 border rounded-md bg-muted/50">
-              <div className="text-sm font-medium">Previously submitted AML application</div>
-              <div className="text-sm text-muted-foreground">Showing your most recent submission — fields are editable and you may re-upload files to replace existing ones.</div>
-              <div className="mt-2 text-sm">
-                <div><strong>Submitted:</strong> {new Date(existingAmlRecord.created || existingAmlRecord.createdAt || Date.now()).toLocaleString()}</div>
+            <div className="p-3 rounded-md bg-green-50 border border-green-200">
+              <div className="text-sm font-medium text-green-900">Previously submitted AML application</div>
+              <div className="text-sm text-green-800">Showing your most recent submission — fields are editable and you may re-upload files to replace existing ones.</div>
+              <div className="mt-2 text-sm text-green-900">
+                <div><strong>Submitted:</strong> {new Date(existingAmlRecord.updated || existingAmlRecord.updatedAt || existingAmlRecord.created || existingAmlRecord.createdAt || Date.now()).toLocaleString('en-GB')}</div>
               </div>
             </div>
           )}
@@ -447,14 +724,34 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Passport (required)</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handlePassportChange(e); const file = e.target.files?.[0]; if (file) openPreview(URL.createObjectURL(file), file.type, file.name, true); }} {...{ capture: 'environment' } as any} />
-              {passportFile && <div className="text-sm mt-1">Selected: {passportFile.name} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => passportFile && openPreview(URL.createObjectURL(passportFile), passportFile.type, passportFile.name, true)}>Preview</button></div>}
+              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handlePassportChange(e); const file = e.target.files?.[0]; if (file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              {passportFile && <div className="text-sm mt-1">{passportIsExisting && <Badge variant="outline" className="ml-2">Available</Badge>} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button></div>}
+              {(!passportFile && existingPassportFiles && existingPassportFiles.length > 0 && existingAmlRecord) && (
+                <div className="text-sm mt-1">
+                  Existing: {existingPassportFiles.map((f, i) => (
+                    <span key={f} className="inline-flex items-center gap-2 mr-2">
+                      <span className="truncate">{f}</span>
+                      <button type="button" className="text-sm text-primary underline" onClick={() => void fetchAndOpenFile('aml_applications', existingAmlRecord.id, f)}>Preview</button>
+                    </span>
+                  ))}
+                </div>
+              )}
               {fieldErrors.passport && <div className="text-sm text-red-600 mt-1">{fieldErrors.passport}</div>}
             </div>
             <div>
               <Label>Proof of address (required)</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handleProofChange(e); const file = e.target.files?.[0]; if (file) openPreview(URL.createObjectURL(file), file.type, file.name, true); }} {...{ capture: 'environment' } as any} />
-              {proofFile && <div className="text-sm mt-1">Selected: {proofFile.name} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => proofFile && openPreview(URL.createObjectURL(proofFile), proofFile.type, proofFile.name, true)}>Preview</button></div>}
+              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handleProofChange(e); const file = e.target.files?.[0]; if (file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              {proofFile && <div className="text-sm mt-1">{proofIsExisting && <Badge variant="outline" className="ml-2">Available</Badge>} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button></div>}
+              {(!proofFile && existingProofFiles && existingProofFiles.length > 0 && existingAmlRecord) && (
+                <div className="text-sm mt-1">
+                  Existing: {existingProofFiles.map((f, i) => (
+                    <span key={f} className="inline-flex items-center gap-2 mr-2">
+                      <span className="truncate">{f}</span>
+                      <button type="button" className="text-sm text-primary underline" onClick={() => void fetchAndOpenFile('aml_applications', existingAmlRecord.id, f)}>Preview</button>
+                    </span>
+                  ))}
+                </div>
+              )}
               {fieldErrors.proof && <div className="text-sm text-red-600 mt-1">{fieldErrors.proof}</div>}
             </div>
           </div>
@@ -476,50 +773,31 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         </form>
       </CardContent>
       <CardFooter>
-        <div className="w-full">
-          <Button type="submit" form="aml-form" disabled={loading}>{loading ? 'Submitting…' : 'Submit'}</Button>
+        <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
+          <div>
+            <Button type="submit" form="aml-form" disabled={loading}>{loading ? 'Submitting…' : 'Submit'}</Button>
+          </div>
+          <div>
+            {error && <div className="text-sm text-red-600 sm:ml-3">{error}</div>}
+          </div>
         </div>
       </CardFooter>
-      {/* Preview dialog */}
-      <Dialog open={previewOpen} onOpenChange={(v) => { if (!v) closePreview(); setPreviewOpen(v); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{previewName ?? 'Preview file'}</DialogTitle>
-            <DialogDescription>{previewMime}</DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
-            {previewUrl && previewMime && previewMime.includes('image') && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewUrl} alt={previewName ?? 'preview'} className="max-h-[60vh] mx-auto" />
-            )}
-            {previewUrl && (!previewMime || previewMime === 'application/pdf' || previewUrl.endsWith('.pdf')) && (
-              <div className="w-full flex justify-center">
-                <iframe
-                  src={previewUrl}
-                  title={previewName ?? 'pdf-preview'}
-                  className="h-[70vh]"
-                  style={{ width: '100%', maxWidth: 'min(1200px, 95vw)', border: 'none' }}
-                />
-              </div>
-            )}
-            {!previewUrl && <div>No preview available</div>}
-          </div>
-          <DialogFooter>
-                <DialogClose asChild>
-                  <Button onClick={() => closePreview()}>Close</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+      {/* Preview handled by SweetAlert2 */}
           <ThankYouDialog
-            open={thankYouOpen}
-            onOpenChange={(v) => setThankYouOpen(v)}
-            title="Thank you"
-            description={
-              'Your AML compliance form has been submitted. We will review the documents and contact you if anything else is required.'
-            }
-            primaryLabel="Close"
-            onPrimary={() => { /* no-op */ }}
+                open={thankYouOpen}
+                onOpenChange={(v) => setThankYouOpen(v)}
+                title="Thank you"
+                description={
+                  'Your AML compliance form has been submitted. We will review the documents and contact you if anything else is required.'
+                }
+                primaryLabel="Close"
+                onPrimary={async () => {
+                  // When the user confirms the thank-you dialog, reload the
+                  // latest AML from the server and repopulate the form (and
+                  // re-attach any server-side files). We don't clear earlier —
+                  // reloadLatestAml will reset file attachments and fields.
+                  await reloadLatestAml();
+                }}
           />
     </Card>
   );
