@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import nexusLogo from '@/assets/nexus-ventures-logo.png';
 import SignaturePad, { SignaturePadHandle } from '@/components/SignaturePad';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import ThankYouDialog from '@/components/ThankYouDialog';
 import { toast } from '@/components/ui/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Header } from '@/components/Header';
@@ -507,34 +507,40 @@ const SepaDd: React.FC = () => {
             </form>
           ) : null}
 
-          {/* Thank-you dialog shown after successful submit */}
-          <Dialog open={submitted} onOpenChange={() => { /* controlled: ignore external close attempts */ }}>
-            <DialogContent>
-              <DialogTitle>Thank you</DialogTitle>
-              <DialogDescription>
-                Your SEPA Direct Debit mandate has been submitted. We have emailed a copy to your email.
-              </DialogDescription>
-              <DialogFooter>
-                <Button onClick={() => {
-                  // reset form state for a new submission and close dialog
-                  setSubmitted(false);
-                  setName('');
-                  setAddress('');
-                  setCity('');
-                  setPostcode('');
-                  setCountry('');
-                  setIban('');
-                  setBic('');
-                  setPaymentType('');
-                  setSignatureData(null);
-                  setSignatureDate('');
-                  setConsent(false);
-                  setSubmitting(false);
-                  try { sigPadRef.current?.clear?.(); } catch (e) { /**/ }
-                }} className="mr-2">New form</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <ThankYouDialog
+            open={submitted}
+            onOpenChange={(v) => {
+              // only allow closing the dialog by the provided button which resets the form
+              if (!v) setSubmitted(false);
+            }}
+            title="Thank you"
+            description={
+              'Your SEPA Direct Debit mandate has been submitted. We have emailed you a copy.'
+            }
+            primaryLabel="Close"
+            onPrimary={() => {
+              // when primary button clicked, just close
+              setSubmitted(false);
+            }}
+            secondaryLabel="New form"
+            onSecondary={() => {
+              // reset form state for a new submission
+              setSubmitted(false);
+              setName('');
+              setAddress('');
+              setCity('');
+              setPostcode('');
+              setCountry('');
+              setIban('');
+              setBic('');
+              setPaymentType('');
+              setSignatureData(null);
+              setSignatureDate('');
+              setConsent(false);
+              setSubmitting(false);
+              try { sigPadRef.current?.clear?.(); } catch (e) { /**/ }
+            }}
+          />
         </Card>
       </main>
 

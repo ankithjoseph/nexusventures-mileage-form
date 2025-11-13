@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog';
+import ThankYouDialog from '@/components/ThankYouDialog';
 
 type Props = {
   onComplete?: (record: any) => void;
@@ -55,6 +56,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   const [previewMime, setPreviewMime] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
   
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -318,6 +320,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   setUploadProgress(0);
 
       onComplete?.(resp.record ?? resp);
+      // show thank-you dialog
+      setThankYouOpen(true);
     } catch (err: any) {
   // Avoid logging full error objects which may contain sensitive data (tokens/ids).
   console.error('Submit failed', err?.message ?? String(err));
@@ -501,12 +505,22 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
             {!previewUrl && <div>No preview available</div>}
           </div>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button onClick={() => closePreview()}>Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <DialogClose asChild>
+                  <Button onClick={() => closePreview()}>Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <ThankYouDialog
+            open={thankYouOpen}
+            onOpenChange={(v) => setThankYouOpen(v)}
+            title="Thank you"
+            description={
+              'Your AML compliance form has been submitted. We will review the documents and contact you if anything else is required.'
+            }
+            primaryLabel="Close"
+            onPrimary={() => { /* no-op */ }}
+          />
     </Card>
   );
 };

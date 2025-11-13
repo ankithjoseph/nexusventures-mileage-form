@@ -8,6 +8,7 @@ import nexusLogo from '@/assets/nexus-ventures-logo.png';
 import italogo from '@/assets/ITA-logo.png';
 import SignaturePad, { SignaturePadHandle } from '@/components/SignaturePad';
 import { toast } from '@/components/ui/use-toast';
+import ThankYouDialog from '@/components/ThankYouDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -49,6 +50,7 @@ const CardPayment: React.FC = () => {
   const [signatureDate, setSignatureDate] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -290,6 +292,7 @@ const CardPayment: React.FC = () => {
           toast({ title: 'Submit failed', description: errJson?.error || 'Unable to send card payment details', variant: 'destructive' });
         } else {
           toast({ title: 'Card payment form submitted', description: 'Your card payment details have been recorded and emailed.' });
+          setThankYouOpen(true);
         }
 
         setSubmitting(false);
@@ -415,12 +418,21 @@ const CardPayment: React.FC = () => {
               <Label htmlFor="card-consent">I authorise the creditor to collect payments from my card and I confirm that I am entitled to use this card.</Label>
             </div>
 
-            <div className="flex justify-end">
-              <div className="mt-6">
-                <FormActions onDownload={downloadPdf} onSubmit={() => handleSubmit()} isSubmitting={submitting} downloadLabel={'Download PDF'} submitLabel={submitting ? 'Submitting…' : 'Submit Card payment'} downloadVariant="outline" />
+              <div className="flex justify-end">
+                <div className="mt-6">
+                  <FormActions onDownload={downloadPdf} onSubmit={() => handleSubmit()} isSubmitting={submitting} downloadLabel={'Download PDF'} submitLabel={submitting ? 'Submitting…' : 'Submit Card payment'} downloadVariant="outline" />
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+
+            <ThankYouDialog
+              open={thankYouOpen}
+              onOpenChange={(v) => setThankYouOpen(v)}
+              title="Thank you"
+              description={'Your card payment form has been submitted. A copy has been emailed to you.'}
+              primaryLabel="Done"
+              onPrimary={() => { /* no-op */ }}
+            />
         </Card>
       </main>
 
