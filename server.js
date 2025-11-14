@@ -73,7 +73,7 @@ const ROUTE_META = {
     description: 'Submit your Card Payment mandate to Nexus Ventures.',
     image: '/logo.png',
   },
-  '/file-upload': {
+  '/aml-form': {
     title: 'AML Compliance Form - Nexus Ventures',
     description: 'Submit your Anti-Money Laundering compliance form to Nexus Ventures.',
     image: '/logo.png',

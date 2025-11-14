@@ -50,11 +50,49 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   const [existingFilesAttached, setExistingFilesAttached] = useState(false);
   
   const [thankYouOpen, setThankYouOpen] = useState(false);
+  const [lastAmlRecordId, setLastAmlRecordId] = useState<string | null>(null);
   
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassportFile(e.target.files?.[0] ?? null);
+    const file = e.target.files?.[0] ?? null;
     setPassportIsExisting(false);
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
+
+    if (!file) {
+      setPassportFile(null);
+      // clear any passport-specific field error
+      setFieldErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.passport;
+        return copy;
+      });
+      return true;
+    }
+
+    if (file.size > maxSizeBytes) {
+      setPassportFile(null);
+      setFieldErrors((prev) => ({ ...prev, passport: 'Passport file is too large (max 10MB)' }));
+      return false;
+    }
+
+    // Some browsers/OS may not set a MIME type for HEIC/HEIF; fall back to extension check
+    const fname = file.name || '';
+    const extOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(fname);
+    if (!allowedTypes.includes(file.type) && !extOk) {
+      setPassportFile(null);
+      setFieldErrors((prev) => ({ ...prev, passport: 'Passport file must be PNG, JPG, HEIC/HEIF or PDF' }));
+      return false;
+    }
+
+    // accepted
+    setPassportFile(file);
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy.passport;
+      return copy;
+    });
+    return true;
   };
 
   // When an existing AML record is present, attach stored files as File objects
@@ -128,8 +166,43 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
 
   const handleProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProofFile(e.target.files?.[0] ?? null);
+    const file = e.target.files?.[0] ?? null;
     setProofIsExisting(false);
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
+
+    if (!file) {
+      setProofFile(null);
+      setFieldErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.proof;
+        return copy;
+      });
+      return true;
+    }
+
+    if (file.size > maxSizeBytes) {
+      setProofFile(null);
+      setFieldErrors((prev) => ({ ...prev, proof: 'Proof of address file is too large (max 10MB)' }));
+      return false;
+    }
+
+    // Some browsers/OS may not set a MIME type for HEIC/HEIF; fall back to extension check
+    const pfname = file.name || '';
+    const pfExtOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(pfname);
+    if (!allowedTypes.includes(file.type) && !pfExtOk) {
+      setProofFile(null);
+      setFieldErrors((prev) => ({ ...prev, proof: 'Proof of address must be PNG, JPG, HEIC/HEIF or PDF' }));
+      return false;
+    }
+
+    setProofFile(file);
+    setFieldErrors((prev) => {
+      const copy = { ...prev };
+      delete copy.proof;
+      return copy;
+    });
+    return true;
   };
 
   // Show preview using SweetAlert2. Accepts a Blob (File) or a URL string.
@@ -535,14 +608,19 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
     // per-file validation
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
     if (passportFile) {
       if (passportFile.size > maxSizeBytes) return setError('Passport file is too large (max 10MB)');
-      if (!allowedTypes.includes(passportFile.type)) return setError('Passport file must be PNG, JPG or PDF');
+      // If file.type is not present, fall back to extension check
+      const pName = passportFile.name || '';
+      const pExtOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(pName);
+      if (!allowedTypes.includes(passportFile.type) && !pExtOk) return setError('Passport file must be PNG, JPG, HEIC/HEIF or PDF');
     }
     if (proofFile) {
       if (proofFile.size > maxSizeBytes) return setError('Proof of address file is too large (max 10MB)');
-      if (!allowedTypes.includes(proofFile.type)) return setError('Proof of address must be PNG, JPG or PDF');
+      const prName = proofFile.name || '';
+      const prExtOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(prName);
+      if (!allowedTypes.includes(proofFile.type) && !prExtOk) return setError('Proof of address must be PNG, JPG, HEIC/HEIF or PDF');
     }
 
   setLoading(true);
@@ -595,7 +673,12 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
     // verify what was submitted. We'll clear / reload after the user closes
     // the thank-you dialog (see handleThankYouClose below).
     setUploadProgress(0);
-    onComplete?.(resp.record ?? resp);
+    const created = resp.record ?? resp;
+    onComplete?.(created);
+    // remember record id so we can notify admin when user closes thank-you dialog
+    try {
+      setLastAmlRecordId(created?.id ?? null);
+    } catch (e) {}
     // show thank-you dialog
     setThankYouOpen(true);
     } catch (err: any) {
@@ -724,7 +807,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Passport (required)</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handlePassportChange(e); const file = e.target.files?.[0]; if (file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
               {passportFile && <div className="text-sm mt-1">{passportIsExisting && <Badge variant="outline" className="ml-2">Available</Badge>} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button></div>}
               {(!passportFile && existingPassportFiles && existingPassportFiles.length > 0 && existingAmlRecord) && (
                 <div className="text-sm mt-1">
@@ -740,7 +823,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
             </div>
             <div>
               <Label>Proof of address (required)</Label>
-              <Input type="file" accept="image/*,application/pdf" onChange={(e)=>{handleProofChange(e); const file = e.target.files?.[0]; if (file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
               {proofFile && <div className="text-sm mt-1">{proofIsExisting && <Badge variant="outline" className="ml-2">Available</Badge>} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button></div>}
               {(!proofFile && existingProofFiles && existingProofFiles.length > 0 && existingAmlRecord) && (
                 <div className="text-sm mt-1">
@@ -792,11 +875,47 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 }
                 primaryLabel="Close"
                 onPrimary={async () => {
-                  // When the user confirms the thank-you dialog, reload the
-                  // latest AML from the server and repopulate the form (and
-                  // re-attach any server-side files). We don't clear earlier —
-                  // reloadLatestAml will reset file attachments and fields.
-                  await reloadLatestAml();
+                  // When the user confirms the thank-you dialog, first notify
+                  // the admin via server-side email with attached documents,
+                  // then reload the latest AML record to re-attach files.
+                  try {
+                    if (lastAmlRecordId) {
+                      // show loading modal
+                      Swal.fire({
+                        title: 'Notifying admin',
+                        html: 'Sending attached documents to admin…',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading(),
+                      });
+
+                      const resp = await fetch('/api/send-aml', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ recordId: lastAmlRecordId }),
+                      });
+
+                      Swal.close();
+
+                      if (!resp.ok) {
+                        let data = null;
+                        try { data = await resp.json(); } catch (e) { /* ignore */ }
+                        await Swal.fire('Admin notification failed', data?.error ?? 'Server returned an error', 'error');
+                      } else {
+                        await Swal.fire('Admin notified', 'Documents were sent to the admin email.', 'success');
+                      }
+                    }
+                  } catch (e) {
+                    try { Swal.close(); } catch (er) {}
+                    await Swal.fire('Admin notification failed', 'Network error while sending admin email.', 'error');
+                  }
+
+                  // Reload latest AML (re-attaches server files) then close dialog
+                  try {
+                    await reloadLatestAml();
+                  } catch (e) {
+                    console.error('reloadLatestAml failed', e);
+                  }
+                  setThankYouOpen(false);
                 }}
           />
     </Card>
