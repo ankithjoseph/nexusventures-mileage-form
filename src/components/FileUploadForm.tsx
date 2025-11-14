@@ -318,6 +318,24 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   setUploadProgress(0);
 
       onComplete?.(resp.record ?? resp);
+      // Notify server to send admin email with uploaded documents
+      try {
+        const recordId = (resp && (resp.record?.id ?? resp.id)) || null;
+        if (recordId) {
+          // fire-and-forget; server will log and return status if needed
+          fetch('/api/send-aml', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recordId }),
+          }).catch((e) => {
+            // don't surface to user, but log for debugging
+            // eslint-disable-next-line no-console
+            console.warn('Failed to notify server for admin email:', e?.message ?? e);
+          });
+        }
+      } catch (e) {
+        // ignore notification errors
+      }
     } catch (err: any) {
   // Avoid logging full error objects which may contain sensitive data (tokens/ids).
   console.error('Submit failed', err?.message ?? String(err));

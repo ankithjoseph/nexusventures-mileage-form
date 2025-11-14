@@ -523,6 +523,117 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
+// Send admin email for AML application identified by PocketBase record id
+app.post('/api/send-aml', async (req, res) => {
+  try {
+    if (!resend) {
+      console.error('RESEND_API_KEY is not configured. Cannot send AML email.');
+      return res.status(500).json({ error: 'RESEND_API_KEY not configured on server' });
+    }
+
+    const { recordId } = req.body || {};
+    if (!recordId) return res.status(400).json({ error: 'recordId required' });
+
+    // Fetch record from PocketBase
+    let record;
+    try {
+      record = await pbServer.collection('aml_applications').getOne(recordId);
+    } catch (e) {
+      console.error('Failed to fetch AML record from PocketBase:', e);
+      return res.status(500).json({ error: 'failed_fetch_record' });
+    }
+
+    // Collect simple fields for email
+    const fullName = record.full_name ?? record.name ?? '';
+    const email = record.email ?? '';
+    const phone = record.phone ?? '';
+    const clientType = record.client_type ?? '';
+    const createdAt = record.created ?? record.createdAt ?? '';
+
+    // Detect file fields — PocketBase stores file fields as arrays of filenames
+    const fileEntries = [];
+    for (const k of Object.keys(record)) {
+      const v = record[k];
+      if (Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string')) {
+        for (const filename of v) fileEntries.push({ field: k, filename });
+      }
+      // Some installations may store a single filename as string
+      if (typeof v === 'string' && /\.[a-z0-9]{2,6}(?:\?|$)/i.test(v)) {
+        fileEntries.push({ field: k, filename: v });
+      }
+    }
+
+    // Download files and prepare attachments
+    const attachments = [];
+    for (const fe of fileEntries) {
+      try {
+        // Construct file URL using PocketBase files API
+        const fileUrl = `${POCKETBASE_URL.replace(/\/$/, '')}/api/files/aml_applications/${encodeURIComponent(recordId)}/${encodeURIComponent(fe.filename)}`;
+        if (!fetchFn) {
+          console.error('No fetch available to download file:', fileUrl);
+          continue;
+        }
+        const fRes = await fetchFn(fileUrl);
+        if (!fRes || !fRes.ok) {
+          console.warn('Failed to download file:', fileUrl, fRes && fRes.status);
+          continue;
+        }
+        const arrayBuffer = await fRes.arrayBuffer();
+        const buf = Buffer.from(arrayBuffer);
+        const b64 = buf.toString('base64');
+
+        // Simple mime type detection from extension
+        const lower = fe.filename.toLowerCase();
+        let mime = 'application/octet-stream';
+        if (lower.endsWith('.pdf')) mime = 'application/pdf';
+        else if (lower.endsWith('.png')) mime = 'image/png';
+        else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mime = 'image/jpeg';
+        else if (lower.endsWith('.gif')) mime = 'image/gif';
+
+        attachments.push({ filename: fe.filename, content: b64, type: mime });
+      } catch (e) {
+        console.warn('Error fetching file for AML email:', fe, e?.message ?? e);
+        continue;
+      }
+    }
+
+    const subject = `New AML application - ${fullName || recordId}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <h2>New AML application received</h2>
+        <table style="width:100%; border-collapse: collapse;">
+          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Full name</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${fullName}</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Email</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${email}</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Phone</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${phone}</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Client type</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${clientType}</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Submitted</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${createdAt}</td></tr>
+        </table>
+        <p style="margin-top:16px;">Attached files are included below.</p>
+      </div>
+    `;
+
+    // send admin email
+    try {
+      const adminResp = await resend.emails.send({
+        from: FROM,
+        to: [ADMIN_EMAIL],
+        subject,
+        html,
+        attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, type: a.type })),
+      });
+
+      const adminEmailId = getEmailId(adminResp);
+      return res.json({ success: true, adminEmailId, attachmentsCount: attachments.length });
+    } catch (e) {
+      console.error('Failed to send AML admin email via Resend:', e);
+      return res.status(500).json({ error: 'failed_send_email' });
+    }
+  } catch (err) {
+    console.error('send-aml server error:', err);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
