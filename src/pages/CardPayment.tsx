@@ -8,6 +8,7 @@ import nexusLogo from '@/assets/nexus-ventures-logo.png';
 import italogo from '@/assets/ITA-logo.png';
 import SignaturePad, { SignaturePadHandle } from '@/components/SignaturePad';
 import { toast } from '@/components/ui/use-toast';
+import ThankYouDialog from '@/components/ThankYouDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -49,6 +50,7 @@ const CardPayment: React.FC = () => {
   const [signatureDate, setSignatureDate] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -290,6 +292,7 @@ const CardPayment: React.FC = () => {
           toast({ title: 'Submit failed', description: errJson?.error || 'Unable to send card payment details', variant: 'destructive' });
         } else {
           toast({ title: 'Card payment form submitted', description: 'Your card payment details have been recorded and emailed.' });
+          setThankYouOpen(true);
         }
 
         setSubmitting(false);
@@ -314,7 +317,7 @@ const CardPayment: React.FC = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-4xl flex-1">
         <Card className="p-6">
-          <h1 className="text-xl font-semibold mb-4">Card Payment form</h1>
+          <h1 className="text-xl font-semibold mb-4 text-primary">Card Payment form</h1>
           <div className="bg-blue-50 border p-3 rounded">
             <p className="text-sm text-muted-foreground mb-6 font-semibold">Legal Text: By signing this mandate form, you authorise (A) Irish Tax Agents LTD. To send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Irish Tax Agents LTD.<br/><br/>
     As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank.<br/><br/>
@@ -415,12 +418,21 @@ const CardPayment: React.FC = () => {
               <Label htmlFor="card-consent">I authorise the creditor to collect payments from my card and I confirm that I am entitled to use this card.</Label>
             </div>
 
-            <div className="flex justify-end">
-              <div className="mt-6">
-                <FormActions onDownload={downloadPdf} onSubmit={() => handleSubmit()} isSubmitting={submitting} downloadLabel={'Download PDF'} submitLabel={submitting ? 'Submitting…' : 'Submit Card payment'} downloadVariant="outline" />
+              <div className="flex justify-end">
+                <div className="mt-6">
+                  <FormActions onDownload={downloadPdf} onSubmit={() => handleSubmit()} isSubmitting={submitting} downloadLabel={'Download PDF'} submitLabel={submitting ? 'Submitting…' : 'Submit Card payment'} downloadVariant="outline" />
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+
+            <ThankYouDialog
+              open={thankYouOpen}
+              onOpenChange={(v) => setThankYouOpen(v)}
+              title="Thank you"
+              description={'Your card payment form has been submitted. A copy has been emailed to you.'}
+              primaryLabel="Done"
+              onPrimary={() => { /* no-op */ }}
+            />
         </Card>
       </main>
 

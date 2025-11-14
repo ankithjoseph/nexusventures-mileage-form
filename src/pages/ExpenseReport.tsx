@@ -7,10 +7,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
 // lucide icons not used in this page
 import { toast } from "sonner";
+import ThankYouDialog from '@/components/ThankYouDialog';
 import Footer from '@/components/Footer';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { generateExpensePDF } from '@/utils/pdfGenerator';
 import FormActions from '@/components/FormActions';
+import pb from '@/lib/pocketbase';
 
 interface ExpenseReportData {
   name: string;
@@ -65,7 +67,13 @@ const createEmptyExpenseReport = (): ExpenseReportData => ({
 const ExpenseReport = () => {
   const [formData, setFormData] = useState<ExpenseReportData>(createEmptyExpenseReport());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
   const { t } = useLanguage();
+
+  const resetForm = () => {
+    setFormData(createEmptyExpenseReport());
+    setIsSubmitting(false);
+  };
 
   const handleFieldChange = (field: keyof ExpenseReportData, value: string) => {
     setFormData(prev => ({
@@ -115,19 +123,28 @@ const ExpenseReport = () => {
         const base64PDF = result?.toString().split(',')[1];
 
         // Send email with PDF attachment
+        // Send the full form data to the server so it can email and persist a record
+        // Include the current PocketBase user id so the server can attach the relation
         const emailData = {
-          name: formData.name,
-          email: formData.email,
-          pps: formData.pps,
+          ...formData,
           pdfData: base64PDF,
-          type: 'expense-report'
+          type: 'expense-report',
+          pb_user_id: (pb.authStore as any)?.model?.id ?? null,
         };
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        try {
+          const token = (pb.authStore as any)?.token;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } catch (e) {
+          // ignore if authStore not available
+        }
 
         const response = await fetch('/api/send-email', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(emailData),
         });
 
@@ -135,9 +152,9 @@ const ExpenseReport = () => {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to send email');
         }
-
         toast.success(t('form.success'));
         setIsSubmitting(false);
+        setThankYouOpen(true);
       };
 
       reader.onerror = () => {
@@ -437,9 +454,18 @@ const ExpenseReport = () => {
             </div>
           </div>
 
-          <div className="mt-6">
-            <FormActions onDownload={handleDownloadPdf} onSubmit={handleSubmit} isSubmitting={isSubmitting} downloadLabel={t('form.download')} submitLabel={isSubmitting ? t('form.sending') : t('form.submit')} />
-          </div>
+              <div className="mt-6">
+                <FormActions onDownload={handleDownloadPdf} onSubmit={handleSubmit} isSubmitting={isSubmitting} downloadLabel={t('form.download')} submitLabel={isSubmitting ? t('form.sending') : t('form.submit')} />
+              </div>
+
+              <ThankYouDialog
+                open={thankYouOpen}
+                onOpenChange={(v) => setThankYouOpen(v)}
+                title={'Thank you'}
+                description={'Your expense report has been submitted. A copy has been emailed to you.'}
+                primaryLabel={ 'New form'}
+                onPrimary={() => { resetForm(); setThankYouOpen(false); }}
+              />
         </Card>
       </main>
 

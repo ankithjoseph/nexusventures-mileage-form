@@ -14,6 +14,7 @@ import MileageBook from "./pages/MileageBook";
 import SepaDd from "./pages/SepaDd";
 import CardPayment from "./pages/CardPayment";
 import FileUpload from "./pages/FileUpload";
+import CompanyIncorporation from "@/pages/CompanyIncorporation";
 import ExternalRedirect from "./pages/ExternalRedirect";
 import NotFound from "./pages/NotFound";
 import PageMeta from '@/components/PageMeta';
@@ -39,7 +40,8 @@ const App = () => (
               <Route path="/mileage-book" element={<RequireAuth><PageMeta title="Mileage Book" ogTitle="Mileage Book - Nexus Ventures" description="Log and manage mileage trips for tax purposes." image="/logo.png" canonical="https://www.nexusventures.eu/mileage-book"><MileageBook /></PageMeta></RequireAuth>} />
               <Route path="/sepa-dd" element={<RequireAuth><PageMeta title="SEPA Direct Debit" ogTitle="SEPA Direct Debit Mandate" description="Submit SEPA Direct Debit mandate details for Nexus Ventures." image="/logo.png" canonical="https://www.nexusventures.eu/sepa-dd"><SepaDd /></PageMeta></RequireAuth>} />
               <Route path="/card-payment" element={<RequireAuth><PageMeta title="Card Payment" ogTitle="Card Payment - Nexus Ventures" description="Make a card payment securely." image="/logo.png" canonical="https://www.nexusventures.eu/card-payment"><CardPayment /></PageMeta></RequireAuth>} />
-              <Route path="/file-upload" element={<RequireAuth><PageMeta title="File Upload" ogTitle="File Upload - Nexus Ventures" description="Upload files securely to Nexus Ventures." image="/logo.png" canonical="https://www.nexusventures.eu/file-upload"><FileUpload /></PageMeta></RequireAuth>} />
+              <Route path="/aml-form" element={<RequireAuth><PageMeta title="File Upload" ogTitle="File Upload - Nexus Ventures" description="Upload files securely to Nexus Ventures." image="/logo.png" canonical="https://www.nexusventures.eu/aml-form"><FileUpload /></PageMeta></RequireAuth>} />
+              <Route path="/company-incorporation" element={<RequireAuth><PageMeta title="Company Incorporation" ogTitle="Company Incorporation - Nexus Ventures" description="Submit details to incorporate a new company." image="/logo.png" canonical="https://www.nexusventures.eu/company-incorporation"><CompanyIncorporation /></PageMeta></RequireAuth>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<PageMeta title="Page not found" ogTitle="404 - Page not found" description="The page you were looking for could not be found." image="/logo.png" canonical="https://www.nexusventures.eu/404"><NotFound /></PageMeta>} />

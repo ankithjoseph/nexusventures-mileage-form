@@ -12,11 +12,19 @@ import { toast } from "sonner";
 import Footer from '@/components/Footer';
 import { Header } from "@/components/Header";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ThankYouDialog from '@/components/ThankYouDialog';
 
 const MileageBook = () => {
   const [formData, setFormData] = useState<LogbookData>(createEmptyLogbook());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
+  const [thankYouOpen, setThankYouOpen] = useState(false);
+
+  const resetForm = () => {
+    setFormData(createEmptyLogbook());
+    setIsSubmitting(false);
+    setThankYouOpen(false);
+  };
 
   const handleFieldChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -118,6 +126,7 @@ const MileageBook = () => {
 
         toast.success(t('form.success'));
         setIsSubmitting(false);
+        setThankYouOpen(true);
       };
 
       reader.onerror = () => {
@@ -200,6 +209,15 @@ const MileageBook = () => {
           />
         </div>
       </main>
+
+      <ThankYouDialog
+        open={thankYouOpen}
+        onOpenChange={(v) => setThankYouOpen(v)}
+        title={ 'Thank you'}
+        description={ 'Your mileage logbook has been submitted. A copy has been emailed to you.'}
+        primaryLabel={'New form'}
+        onPrimary={() => {resetForm() ; setThankYouOpen(false);}}
+      />
 
       <Footer title="Business Mileage Logbook" subtitle="For tax compliance purposes. Keep records for at least 6 years." />
     </div>
