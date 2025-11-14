@@ -784,10 +784,13 @@ app.post('/api/send-aml', async (req, res) => {
     // If the client provided a PocketBase token in the request (Authorization
     // header or x-pb-token), apply it so the server can fetch protected files
     // on behalf of that user. This mirrors the logic used by /api/pb-file.
+    // Capture the returned token so we can enforce that a user-authenticated
+    // session exists before attempting to download private files from PocketBase.
+    let appliedPbToken = null;
     try {
-      applyPbTokenFromRequest(pbServer, req);
+      appliedPbToken = applyPbTokenFromRequest(pbServer, req);
     } catch (e) {
-      // non-fatal
+      appliedPbToken = null;
     }
 
     // Collect simple fields for email
@@ -835,6 +838,13 @@ app.post('/api/send-aml', async (req, res) => {
 
     // If no attachments were provided by the client, fallback to downloading from PocketBase
     if (attachments.length === 0) {
+      // Require that a user PocketBase token was supplied/applied when attempting
+      // to download user-specific files from PocketBase. This prevents the server
+      // from attempting unauthenticated fetches which will often fail for private files.
+      if (fileEntries.length > 0 && !appliedPbToken) {
+        console.warn('Attempt to download PocketBase files for AML email without applied user auth token');
+        return res.status(401).json({ error: 'missing_pocketbase_auth_token', message: 'PocketBase auth token required to download private files' });
+      }
       for (const fe of fileEntries) {
         try {
           const fetcher = await getFetcher();

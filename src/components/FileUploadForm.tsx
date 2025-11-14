@@ -891,12 +891,12 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                   try {
                     if (lastAmlRecordId) {
                       // show loading modal
-                      // Swal.fire({
-                      //   title: 'Notifying admin',
-                      //   html: 'Sending attached documents to admin…',
-                      //   allowOutsideClick: false,
-                      //   didOpen: () => Swal.showLoading(),
-                      // });
+                      Swal.fire({
+                        title: 'Submitting…',
+                        html: 'Submitting attached documents…',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading(),
+                      });
 
                       // Convert selected files (if any) to base64 and include in request
                       const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
@@ -939,21 +939,21 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                         body: JSON.stringify({ recordId: lastAmlRecordId, files: filesPayload }),
                       });
 
-                     // Swal.close();
+                      Swal.close();
 
                       if (!resp.ok) {
                         let data = null;
                         try { data = await resp.json(); } catch (e) { /* ignore */ }
-                       // await Swal.fire('Admin notification failed', data?.error ?? 'Server returned an error', 'error');
+                       await Swal.fire('Document Submission failed', data?.error ?? 'Server returned an error', 'error');
                       } else {
-                       // await Swal.fire('Admin notified', 'Documents were sent to the admin email.', 'success');
+                       await Swal.fire('Submitted', 'Documents submitted successfully.', 'success');
                       }
                     }
                   } catch (e) {
                     try { 
-                     // Swal.close();
+                     Swal.close();
                      } catch (er) {}
-                    await Swal.fire('Admin notification failed', 'Network error while sending admin email.', 'error');
+                    await Swal.fire('Document Submission failed', 'Network error while submitting documents.', 'error');
                   }
 
                   // Reload latest AML (re-attaches server files) then close dialog
