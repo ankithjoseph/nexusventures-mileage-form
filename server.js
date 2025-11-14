@@ -36,7 +36,8 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '20mb' }));
+// Increase JSON body limit to allow base64 file uploads from the client
+app.use(express.json({ limit: '100mb' }));
 
 // Simple in-memory rate limiter (per-email and per-IP). This is intentionally
 // small and lightweight: it protects the password-reset endpoint from abuse.
@@ -771,13 +772,22 @@ app.post('/api/send-aml', async (req, res) => {
     const { recordId } = req.body || {};
     if (!recordId) return res.status(400).json({ error: 'recordId required' });
 
-    // Fetch record from PocketBase
+  // Fetch record from PocketBase
     let record;
     try {
       record = await pbServer.collection('aml_applications').getOne(recordId);
     } catch (e) {
       console.error('Failed to fetch AML record from PocketBase:', e);
       return res.status(500).json({ error: 'failed_fetch_record' });
+    }
+
+    // If the client provided a PocketBase token in the request (Authorization
+    // header or x-pb-token), apply it so the server can fetch protected files
+    // on behalf of that user. This mirrors the logic used by /api/pb-file.
+    try {
+      applyPbTokenFromRequest(pbServer, req);
+    } catch (e) {
+      // non-fatal
     }
 
     // Collect simple fields for email
@@ -800,37 +810,77 @@ app.post('/api/send-aml', async (req, res) => {
       }
     }
 
-    // Download files and prepare attachments
+    // Prepare attachments. Prefer files supplied in the request body (base64)
+    // to avoid having to re-download from PocketBase. If none supplied, fall
+    // back to downloading from PocketBase as before.
     const attachments = [];
-    for (const fe of fileEntries) {
-      try {
-        // Construct file URL using PocketBase files API
-        const fileUrl = `${POCKETBASE_URL.replace(/\/$/, '')}/api/files/aml_applications/${encodeURIComponent(recordId)}/${encodeURIComponent(fe.filename)}`;
-        if (!fetchFn) {
-          console.error('No fetch available to download file:', fileUrl);
+
+    // Use any files the client sent in the request body (base64) first
+    try {
+      const incomingFiles = req.body?.files;
+      if (Array.isArray(incomingFiles) && incomingFiles.length > 0) {
+        for (const f of incomingFiles) {
+          try {
+            if (!f || !f.filename || !f.content) continue;
+            attachments.push({ filename: f.filename, content: f.content, type: f.type || 'application/octet-stream' });
+          } catch (e) {
+            console.warn('Invalid incoming file entry for send-aml', e);
+            continue;
+          }
+        }
+      }
+    } catch (e) {
+      // ignore and continue to fallback
+    }
+
+    // If no attachments were provided by the client, fallback to downloading from PocketBase
+    if (attachments.length === 0) {
+      for (const fe of fileEntries) {
+        try {
+          const fetcher = await getFetcher();
+          // Try to obtain a short-lived file token (preferred)
+          let fileToken = null;
+          try {
+            if (pbServer.files && typeof pbServer.files.getToken === 'function') {
+              fileToken = await pbServer.files.getToken();
+            }
+          } catch (e) {
+            fileToken = null;
+          }
+
+          const fileUrl = `${POCKETBASE_URL.replace(/\/$/, '')}/api/files/aml_applications/${encodeURIComponent(recordId)}/${encodeURIComponent(fe.filename)}${fileToken ? `?token=${encodeURIComponent(fileToken)}` : ''}`;
+          if (!fetcher) {
+            console.error('No fetch available to download file:', fileUrl);
+            continue;
+          }
+
+          const headers = {};
+          try {
+            if (!fileToken && pbServer?.authStore?.token) headers['Authorization'] = `Bearer ${pbServer.authStore.token}`;
+          } catch (e) {}
+
+          const fRes = await fetcher(fileUrl, { method: 'GET', headers });
+          if (!fRes || !fRes.ok) {
+            console.warn('Failed to download file:', fileUrl, fRes && fRes.status);
+            continue;
+          }
+          const arrayBuffer = await fRes.arrayBuffer();
+          const buf = Buffer.from(arrayBuffer);
+          const b64 = buf.toString('base64');
+
+          // Simple mime type detection from extension
+          const lower = fe.filename.toLowerCase();
+          let mime = 'application/octet-stream';
+          if (lower.endsWith('.pdf')) mime = 'application/pdf';
+          else if (lower.endsWith('.png')) mime = 'image/png';
+          else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mime = 'image/jpeg';
+          else if (lower.endsWith('.gif')) mime = 'image/gif';
+
+          attachments.push({ filename: fe.filename, content: b64, type: mime });
+        } catch (e) {
+          console.warn('Error fetching file for AML email:', fe, e?.message ?? e);
           continue;
         }
-        const fRes = await fetchFn(fileUrl);
-        if (!fRes || !fRes.ok) {
-          console.warn('Failed to download file:', fileUrl, fRes && fRes.status);
-          continue;
-        }
-        const arrayBuffer = await fRes.arrayBuffer();
-        const buf = Buffer.from(arrayBuffer);
-        const b64 = buf.toString('base64');
-
-        // Simple mime type detection from extension
-        const lower = fe.filename.toLowerCase();
-        let mime = 'application/octet-stream';
-        if (lower.endsWith('.pdf')) mime = 'application/pdf';
-        else if (lower.endsWith('.png')) mime = 'image/png';
-        else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mime = 'image/jpeg';
-        else if (lower.endsWith('.gif')) mime = 'image/gif';
-
-        attachments.push({ filename: fe.filename, content: b64, type: mime });
-      } catch (e) {
-        console.warn('Error fetching file for AML email:', fe, e?.message ?? e);
-        continue;
       }
     }
 

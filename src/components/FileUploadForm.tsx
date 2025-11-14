@@ -645,8 +645,18 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       formData.append('activity_description', activityDescription);
       formData.append('consent', consent ? '1' : '0');
 
-      if (passportFile) formData.append('passport', passportFile, passportFile.name);
-      if (proofFile) formData.append('proof_of_address', proofFile, proofFile.name);
+      if (passportFile) {
+        // rename uploaded passport file to a stable name while preserving extension
+        const pExt = (passportFile.name && passportFile.name.includes('.')) ? passportFile.name.slice(passportFile.name.lastIndexOf('.')) : '';
+        const passportFilename = `passport${pExt}`;
+        formData.append('passport', passportFile, passportFilename);
+      }
+      if (proofFile) {
+        // rename uploaded proof file to a stable name (address-proof) while preserving extension
+        const prExt = (proofFile.name && proofFile.name.includes('.')) ? proofFile.name.slice(proofFile.name.lastIndexOf('.')) : '';
+        const proofFilename = `address-proof${prExt}`;
+        formData.append('proof_of_address', proofFile, proofFilename);
+      }
 
   // user authentication will be validated below and appended to the FormData
 
@@ -881,31 +891,68 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                   try {
                     if (lastAmlRecordId) {
                       // show loading modal
-                      Swal.fire({
-                        title: 'Notifying admin',
-                        html: 'Sending attached documents to admin…',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
+                      // Swal.fire({
+                      //   title: 'Notifying admin',
+                      //   html: 'Sending attached documents to admin…',
+                      //   allowOutsideClick: false,
+                      //   didOpen: () => Swal.showLoading(),
+                      // });
+
+                      // Convert selected files (if any) to base64 and include in request
+                      const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+                        try {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const result = reader.result as string;
+                            const parts = result.split(',');
+                            resolve(parts.length > 1 ? parts[1] : result);
+                          };
+                          reader.onerror = (err) => reject(err);
+                          reader.readAsDataURL(file);
+                        } catch (err) { reject(err); }
                       });
 
+                      const filesPayload: Array<any> = [];
+                      try {
+                        if (passportFile) {
+                          const b64 = await fileToBase64(passportFile);
+                          const pExt = (passportFile.name && passportFile.name.includes('.')) ? passportFile.name.slice(passportFile.name.lastIndexOf('.')) : '';
+                          const passportFilename = `passport${pExt}`;
+                          filesPayload.push({ field: 'passport', filename: passportFilename, content: b64, type: passportFile.type || '' });
+                        }
+                        if (proofFile) {
+                          const b64 = await fileToBase64(proofFile);
+                          const prExt = (proofFile.name && proofFile.name.includes('.')) ? proofFile.name.slice(proofFile.name.lastIndexOf('.')) : '';
+                          const proofFilename = `address-proof${prExt}`;
+                          filesPayload.push({ field: 'proof_of_address', filename: proofFilename, content: b64, type: proofFile.type || '' });
+                        }
+                      } catch (err) {
+                        console.warn('Failed to read files for admin email', err);
+                      }
+
+                      // Include the current PocketBase auth token so the server
+                      // can fetch private files on behalf of the user when needed.
+                      const pbToken = (pb.authStore as any)?.token ?? '';
                       const resp = await fetch('/api/send-aml', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ recordId: lastAmlRecordId }),
+                        headers: { 'Content-Type': 'application/json', ...(pbToken ? { Authorization: `Bearer ${pbToken}` } : {}) },
+                        body: JSON.stringify({ recordId: lastAmlRecordId, files: filesPayload }),
                       });
 
-                      Swal.close();
+                     // Swal.close();
 
                       if (!resp.ok) {
                         let data = null;
                         try { data = await resp.json(); } catch (e) { /* ignore */ }
-                        await Swal.fire('Admin notification failed', data?.error ?? 'Server returned an error', 'error');
+                       // await Swal.fire('Admin notification failed', data?.error ?? 'Server returned an error', 'error');
                       } else {
-                        await Swal.fire('Admin notified', 'Documents were sent to the admin email.', 'success');
+                       // await Swal.fire('Admin notified', 'Documents were sent to the admin email.', 'success');
                       }
                     }
                   } catch (e) {
-                    try { Swal.close(); } catch (er) {}
+                    try { 
+                     // Swal.close();
+                     } catch (er) {}
                     await Swal.fire('Admin notification failed', 'Network error while sending admin email.', 'error');
                   }
 
