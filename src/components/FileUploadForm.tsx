@@ -261,7 +261,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         title: name ?? 'Preview file',
         html: container,
         showConfirmButton: true,
-        confirmButtonText: 'Close',
+        confirmButtonText: 'Accept',
         showCloseButton: false,
         width: '90%',
         customClass: {
@@ -749,38 +749,46 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
             </div>
           )}
 
-          
+          {/* Personal information section */}
+          <section className="bg-muted/20 p-4 rounded-md border">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium">Personal information</h2>
+              <Badge>{clientType === 'individual' ? 'Individual' : 'Company'}</Badge>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Full name</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              {fieldErrors.fullName && <div className="text-sm text-red-600 mt-1">{fieldErrors.fullName}</div>}
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              {fieldErrors.email && <div className="text-sm text-red-600 mt-1">{fieldErrors.email}</div>}
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-              {fieldErrors.phone && <div className="text-sm text-red-600 mt-1">{fieldErrors.phone}</div>}
-            </div>
-            <div>
-              <Label>Nationality</Label>
-              <Input value={nationality} onChange={(e) => setNationality(e.target.value)} />
-              {fieldErrors.nationality && <div className="text-sm text-red-600 mt-1">{fieldErrors.nationality}</div>}
-            </div>
-            <div className="md:col-span-2">
-              <Label>Address</Label>
-              <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
-              {fieldErrors.address && <div className="text-sm text-red-600 mt-1">{fieldErrors.address}</div>}
-            </div>
-          </div>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Full name</Label>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                {fieldErrors.fullName && <div className="text-sm text-red-600 mt-1">{fieldErrors.fullName}</div>}
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                {fieldErrors.email && <div className="text-sm text-red-600 mt-1">{fieldErrors.email}</div>}
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                {fieldErrors.phone && <div className="text-sm text-red-600 mt-1">{fieldErrors.phone}</div>}
+              </div>
+              <div>
+                <Label>Nationality</Label>
+                <Input value={nationality} onChange={(e) => setNationality(e.target.value)} />
+                {fieldErrors.nationality && <div className="text-sm text-red-600 mt-1">{fieldErrors.nationality}</div>}
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+              <div className="md:col-span-2">
+                <Label>Address</Label>
+                <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
+                {fieldErrors.address && <div className="text-sm text-red-600 mt-1">{fieldErrors.address}</div>}
+              </div>
+            </div>
+          </section>
+
+          {/* Client type and dates */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-background p-4 rounded-md border">
               <Label>Type of client</Label>
               <select className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientType} onChange={(e) => setClientType(e.target.value as any)}>
                 <option value="individual">Individual</option>
@@ -788,80 +796,101 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               </select>
               {fieldErrors.clientType && <div className="text-sm text-red-600 mt-1">{fieldErrors.clientType}</div>}
             </div>
-            <div>
+            <div className="bg-background p-4 rounded-md border">
               <Label>{clientType === 'individual' ? 'Date of birth (for individuals)' : 'Date of incorporation (for companies)'}</Label>
               <Input type="date" value={clientType === 'individual' ? dob : companyIncorpDate} onChange={(e) => clientType === 'individual' ? setDob(e.target.value) : setCompanyIncorpDate(e.target.value)} />
               {fieldErrors.date && <div className="text-sm text-red-600 mt-1">{fieldErrors.date}</div>}
             </div>
-          </div>
+          </section>
 
           {clientType === 'company' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Company name</Label>
-                <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+            <section className="bg-muted/10 p-4 rounded-md border">
+              <h3 className="text-md font-medium mb-3">Company details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Company name</Label>
+                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Company CRO</Label>
+                  <Input value={companyCRO} onChange={(e) => setCompanyCRO(e.target.value)} />
+                  {fieldErrors.company && <div className="text-sm text-red-600 mt-1">{fieldErrors.company}</div>}
+                </div>
               </div>
-              <div>
-                <Label>Company CRO</Label>
-                <Input value={companyCRO} onChange={(e) => setCompanyCRO(e.target.value)} />
-                {fieldErrors.company && <div className="text-sm text-red-600 mt-1">{fieldErrors.company}</div>}
-              </div>
-            </div>
+            </section>
           )}
 
-          <div>
+          <section>
             <Label>Short description of activity</Label>
             <Textarea value={activityDescription} onChange={(e) => setActivityDescription(e.target.value)} />
-          </div>
+          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Passport (required)</Label>
+          {/* Documents section with modern file boxes */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-md border border-dashed border-input p-4 bg-background">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <Label className="mb-0">Passport (required)</Label>
+                  <div className="text-xs text-muted-foreground">PNG, JPG, HEIC/HEIF or PDF. Max 10MB.</div>
+                </div>
+                {passportIsExisting && <Badge variant="outline">Available</Badge>}
+              </div>
               <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
-              {passportFile && <div className="text-sm mt-1">{passportIsExisting && <Badge variant="outline" className="ml-2">Available</Badge>} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button></div>}
-              {(!passportFile && existingPassportFiles && existingPassportFiles.length > 0 && existingAmlRecord) && (
-                <div className="text-sm mt-1">
-                  Existing: {existingPassportFiles.map((f, i) => (
-                    <span key={f} className="inline-flex items-center gap-2 mr-2">
-                      <span className="truncate">{f}</span>
-                      <button type="button" className="text-sm text-primary underline" onClick={() => void fetchAndOpenFile('aml_applications', existingAmlRecord.id, f)}>Preview</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {fieldErrors.passport && <div className="text-sm text-red-600 mt-1">{fieldErrors.passport}</div>}
+              <div className="mt-2 flex items-center gap-2">
+                {passportFile && <button type="button" className="text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button>}
+                {(!passportFile && existingPassportFiles && existingPassportFiles.length > 0 && existingAmlRecord) && (
+                  <div className="text-sm">
+                    Existing: {existingPassportFiles.map((f) => (
+                      <span key={f} className="inline-flex items-center gap-2 mr-2">
+                        <span className="truncate">{f}</span>
+                        <button type="button" className="text-sm text-primary underline" onClick={() => void fetchAndOpenFile('aml_applications', existingAmlRecord.id, f)}>Preview</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {fieldErrors.passport && <div className="text-sm text-red-600 mt-1">{fieldErrors.passport}</div>}
+              </div>
             </div>
-            <div>
-              <Label>Proof of address (required)</Label>
-              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
-              {proofFile && <div className="text-sm mt-1">{proofIsExisting && <Badge variant="outline" className="ml-2">Available</Badge>} <button type="button" className="ml-2 text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button></div>}
-              {(!proofFile && existingProofFiles && existingProofFiles.length > 0 && existingAmlRecord) && (
-                <div className="text-sm mt-1">
-                  Existing: {existingProofFiles.map((f, i) => (
-                    <span key={f} className="inline-flex items-center gap-2 mr-2">
-                      <span className="truncate">{f}</span>
-                      <button type="button" className="text-sm text-primary underline" onClick={() => void fetchAndOpenFile('aml_applications', existingAmlRecord.id, f)}>Preview</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {fieldErrors.proof && <div className="text-sm text-red-600 mt-1">{fieldErrors.proof}</div>}
-            </div>
-          </div>
 
-          <div className="flex items-start gap-3">
-            <Checkbox id="consent" checked={consent} onCheckedChange={(v) => setConsent(Boolean(v))} />
-            <label htmlFor="consent" className="text-sm">I confirm the information is true and authorize Irish Tax Agents to use it for AML compliance.</label>
-          </div>
-    {fieldErrors.consent && <div className="text-sm text-red-600 mt-1">{fieldErrors.consent}</div>}
+            <div className="rounded-md border border-dashed border-input p-4 bg-background">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <Label className="mb-0">Proof of address (required)</Label>
+                  <div className="text-xs text-muted-foreground">PNG, JPG, HEIC/HEIF or PDF. Max 10MB.</div>
+                </div>
+                {proofIsExisting && <Badge variant="outline">Available</Badge>}
+              </div>
+              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              <div className="mt-2 flex items-center gap-2">
+                {proofFile && <button type="button" className="text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button>}
+                {(!proofFile && existingProofFiles && existingProofFiles.length > 0 && existingAmlRecord) && (
+                  <div className="text-sm">
+                    Existing: {existingProofFiles.map((f) => (
+                      <span key={f} className="inline-flex items-center gap-2 mr-2">
+                        <span className="truncate">{f}</span>
+                        <button type="button" className="text-sm text-primary underline" onClick={() => void fetchAndOpenFile('aml_applications', existingAmlRecord.id, f)}>Preview</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {fieldErrors.proof && <div className="text-sm text-red-600 mt-1">{fieldErrors.proof}</div>}
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-muted/10 p-3 rounded-md border">
+            <div className="flex items-start gap-3">
+              <Checkbox id="consent" checked={consent} onCheckedChange={(v) => setConsent(Boolean(v))} />
+              <label htmlFor="consent" className="text-sm">I confirm the information is true and authorize Irish Tax Agents to use it for AML compliance.</label>
+            </div>
+            {fieldErrors.consent && <div className="text-sm text-red-600 mt-1">{fieldErrors.consent}</div>}
+          </section>
 
           {uploadProgress > 0 && (
             <div className="w-full bg-gray-100 rounded h-2 mt-3">
               <div className="h-2 bg-primary rounded" style={{ width: `${uploadProgress}%` }} />
             </div>
           )}
-
-          
 
         </form>
       </CardContent>
