@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import pb from '@/lib/pocketbase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -51,15 +51,13 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [lastAmlRecordId, setLastAmlRecordId] = useState<string | null>(null);
-  const passportCameraInputRef = useRef<HTMLInputElement | null>(null);
-  const proofCameraInputRef = useRef<HTMLInputElement | null>(null);
   
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setPassportIsExisting(false);
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
 
     if (!file) {
       setPassportFile(null);
@@ -78,7 +76,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       return false;
     }
 
-    // Some browsers/OS may not set a MIME type for HEIC/HEIF; fall back to extension check
+    // Some browsers/OS (especially iOS camera) may not set a MIME type for HEIC/HEIF or photos; fall back to extension check
     const fname = file.name || '';
     const extOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(fname);
     if (!allowedTypes.includes(file.type) && !extOk) {
@@ -751,6 +749,60 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
             </div>
           )}
 
+          {/* Personal information section */}
+          <section className="bg-muted/20 p-4 rounded-md border">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium">Personal information</h2>
+              <Badge>{clientType === 'individual' ? 'Individual' : 'Company'}</Badge>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Full name</Label>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                {fieldErrors.fullName && <div className="text-sm text-red-600 mt-1">{fieldErrors.fullName}</div>}
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                {fieldErrors.email && <div className="text-sm text-red-600 mt-1">{fieldErrors.email}</div>}
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                {fieldErrors.phone && <div className="text-sm text-red-600 mt-1">{fieldErrors.phone}</div>}
+              </div>
+              <div>
+                <Label>Nationality</Label>
+                <Input value={nationality} onChange={(e) => setNationality(e.target.value)} />
+                {fieldErrors.nationality && <div className="text-sm text-red-600 mt-1">{fieldErrors.nationality}</div>}
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Address</Label>
+                <Textarea value={address} onChange={(e) => setAddress(e.target.value)} />
+                {fieldErrors.address && <div className="text-sm text-red-600 mt-1">{fieldErrors.address}</div>}
+              </div>
+            </div>
+          </section>
+
+          {/* Client type and dates */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-background p-4 rounded-md border">
+              <Label>Type of client</Label>
+              <select className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientType} onChange={(e) => setClientType(e.target.value as any)}>
+                <option value="individual">Individual</option>
+                <option value="company">Company</option>
+              </select>
+              {fieldErrors.clientType && <div className="text-sm text-red-600 mt-1">{fieldErrors.clientType}</div>}
+            </div>
+            <div className="bg-background p-4 rounded-md border">
+              <Label>{clientType === 'individual' ? 'Date of birth (for individuals)' : 'Date of incorporation (for companies)'}</Label>
+              <Input type="date" value={clientType === 'individual' ? dob : companyIncorpDate} onChange={(e) => clientType === 'individual' ? setDob(e.target.value) : setCompanyIncorpDate(e.target.value)} />
+              {fieldErrors.date && <div className="text-sm text-red-600 mt-1">{fieldErrors.date}</div>}
+            </div>
+          </section>
+
           {clientType === 'company' && (
             <section className="bg-muted/10 p-4 rounded-md border">
               <h3 className="text-md font-medium mb-3">Company details</h3>
@@ -783,11 +835,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 </div>
                 {passportIsExisting && <Badge variant="outline">Available</Badge>}
               </div>
-              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} />
-              {/* Hidden camera-only input triggers the native camera on iOS */}
-              <input type="file" accept="image/*" capture="environment" ref={passportCameraInputRef as any} style={{ display: 'none' }} onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} />
+              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
               <div className="mt-2 flex items-center gap-2">
-                <button type="button" className="text-sm text-primary underline" onClick={() => (passportCameraInputRef.current as HTMLInputElement | null)?.click()}>Take photo</button>
                 {passportFile && <button type="button" className="text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button>}
                 {(!passportFile && existingPassportFiles && existingPassportFiles.length > 0 && existingAmlRecord) && (
                   <div className="text-sm">
@@ -811,11 +860,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 </div>
                 {proofIsExisting && <Badge variant="outline">Available</Badge>}
               </div>
-              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} />
-              {/* Hidden camera-only input triggers the native camera on iOS */}
-              <input type="file" accept="image/*" capture="environment" ref={proofCameraInputRef as any} style={{ display: 'none' }} onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} />
+              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
               <div className="mt-2 flex items-center gap-2">
-                <button type="button" className="text-sm text-primary underline" onClick={() => (proofCameraInputRef.current as HTMLInputElement | null)?.click()}>Take photo</button>
                 {proofFile && <button type="button" className="text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button>}
                 {(!proofFile && existingProofFiles && existingProofFiles.length > 0 && existingAmlRecord) && (
                   <div className="text-sm">
