@@ -51,6 +51,39 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [lastAmlRecordId, setLastAmlRecordId] = useState<string | null>(null);
+  const [hasShownCameraHelp, setHasShownCameraHelp] = useState(false);
+
+  const maybeShowCameraHelp = () => {
+    if (hasShownCameraHelp) return;
+
+    if (typeof navigator === 'undefined') return;
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    if (!isIOS) return;
+
+    setHasShownCameraHelp(true);
+
+    Swal.fire({
+      icon: 'info',
+      title: 'Using the camera on iPhone',
+      html: `
+        <div class="text-left text-sm">
+          <p class="mb-2">When the file picker opens:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Allow camera access if iOS asks for permission.</li>
+            <li>If the camera shows a black screen, close it and choose <strong>Photo Library</strong> or <strong>Browse</strong> instead.</li>
+            <li>If you opened this form inside another app (Mail, Outlook, etc.), open it in <strong>Safari</strong> for the best camera support.</li>
+          </ul>
+        </div>
+      `,
+      confirmButtonText: 'OK',
+      customClass: {
+        popup: 'max-w-md',
+        title: 'text-base',
+        confirmButton: 'w-full sm:w-auto py-2 px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md',
+      },
+    });
+  };
   
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -838,6 +871,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               <Input
                 type="file"
                 accept="image/*,application/pdf,.heic,.heif"
+                onClick={maybeShowCameraHelp}
                 onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
               />
               <div className="mt-2 flex items-center gap-2">
@@ -867,6 +901,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               <Input
                 type="file"
                 accept="image/*,application/pdf,.heic,.heif"
+                onClick={maybeShowCameraHelp}
                 onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
               />
               <div className="mt-2 flex items-center gap-2">
