@@ -835,7 +835,11 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 </div>
                 {passportIsExisting && <Badge variant="outline">Available</Badge>}
               </div>
-              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              <Input
+                type="file"
+                accept="image/*,application/pdf,.heic,.heif"
+                onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
+              />
               <div className="mt-2 flex items-center gap-2">
                 {passportFile && <button type="button" className="text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button>}
                 {(!passportFile && existingPassportFiles && existingPassportFiles.length > 0 && existingAmlRecord) && (
@@ -860,7 +864,11 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 </div>
                 {proofIsExisting && <Badge variant="outline">Available</Badge>}
               </div>
-              <Input type="file" accept="image/*,application/pdf,.heic,.heif" onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }} {...{ capture: 'environment' } as any} />
+              <Input
+                type="file"
+                accept="image/*,application/pdf,.heic,.heif"
+                onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
+              />
               <div className="mt-2 flex items-center gap-2">
                 {proofFile && <button type="button" className="text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button>}
                 {(!proofFile && existingProofFiles && existingProofFiles.length > 0 && existingAmlRecord) && (
