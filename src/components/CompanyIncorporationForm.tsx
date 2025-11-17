@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import FormActions from '@/components/FormActions';
+import { generateCompanyIncorporationPDF } from '@/utils/pdfGenerator';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
@@ -26,7 +27,7 @@ type OwnerFormState = {
   sharePercentage: string;
 };
 
-type CompanyIncorporationData = {
+export type CompanyIncorporationData = {
   applicant: {
     fullName: string;
     email: string;
@@ -49,6 +50,7 @@ type CompanyIncorporationData = {
     phone: string;
     email: string;
     nationality: string;
+    isNexusSecretary: boolean;
   } | null;
   ownership: {
     owners: Array<{
@@ -77,6 +79,7 @@ type FormState = {
   secretaryPhone: string;
   secretaryEmail: string;
   secretaryNationality: string;
+  secretaryIsNexus: boolean;
 };
 
 type Props = {
@@ -99,6 +102,7 @@ const initialFormState: FormState = {
   secretaryPhone: '',
   secretaryEmail: '',
   secretaryNationality: '',
+  secretaryIsNexus: false,
 };
 
 const createEmptyDirector = (): DirectorFormState => ({
@@ -126,7 +130,6 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [directors, setDirectors] = useState<DirectorFormState[]>([createEmptyDirector()]);
   const [owners, setOwners] = useState<OwnerFormState[]>([createEmptyOwner()]);
-  const [hasSecretary, setHasSecretary] = useState(false);
   const [hasMultipleDirectors, setHasMultipleDirectors] = useState(false);
   const [shareOption, setShareOption] = useState<'100' | 'other'>('100');
   const [otherAmount, setOtherAmount] = useState('');
@@ -138,6 +141,11 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
     field: keyof FormState
   ) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const value = event.target.value;
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCheckboxChange = (field: keyof FormState) => (checked: boolean | 'indeterminate') => {
+    const value = checked === true;
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -219,8 +227,11 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
   const validate = () => {
     const errors: Record<string, string> = {};
     requiredFields.forEach((field) => {
-      if (!form[field]?.trim()) {
-        errors[field] = 'This field is required';
+      const value = form[field];
+      if (typeof value === 'string') {
+        if (!value.trim()) {
+          errors[field] = 'This field is required';
+        }
       }
     });
 
@@ -260,11 +271,14 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
       errors.ownershipTotal = 'Share percentages must add up to 100%.';
     }
 
-    if (hasSecretary) {
+    if (!form.secretaryIsNexus) {
       ['secretaryName', 'secretaryDob', 'secretaryAddress', 'secretaryPhone', 'secretaryEmail', 'secretaryNationality'].forEach(
         (field) => {
-          if (!form[field as keyof FormState]?.trim()) {
-            errors[field] = 'This field is required';
+          const value = form[field as keyof FormState];
+          if (typeof value === 'string') {
+            if (!value.trim()) {
+              errors[field] = 'This field is required';
+            }
           }
         }
       );
@@ -312,16 +326,15 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
       profession: director.profession
     })),
     hasMultipleDirectors,
-    secretary: hasSecretary
-      ? {
-          fullName: form.secretaryName,
-          dob: form.secretaryDob,
-          address: form.secretaryAddress,
-          phone: form.secretaryPhone,
-          email: form.secretaryEmail,
-          nationality: form.secretaryNationality
-        }
-      : null,
+    secretary: {
+      fullName: form.secretaryName,
+      dob: form.secretaryDob,
+      address: form.secretaryAddress,
+      phone: form.secretaryPhone,
+      email: form.secretaryEmail,
+      nationality: form.secretaryNationality,
+      isNexusSecretary: form.secretaryIsNexus
+    },
     ownership: {
       owners: owners.map((owner) => ({
         fullName: owner.fullName,
@@ -358,6 +371,12 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
     }
   };
 
+  const handleDownloadPdf = () => {
+    const payload = buildPayload();
+    const doc = generateCompanyIncorporationPDF(payload);
+    doc.save('company-incorporation.pdf');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
@@ -376,6 +395,12 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
         </CardContent>
       </Card>
 
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={handleDownloadPdf} disabled={submitting}>
+          Download PDF
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <div>
@@ -386,22 +411,22 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>Full Name of Applicant</Label>
-            <Input value={form.applicantName} onChange={handleChange('applicantName')} />
+            <Input value={form.applicantName} onChange={handleChange('applicantName')} autoCapitalize="words" />
             {fieldErrors.applicantName && <p className="text-sm text-red-600 mt-1">{fieldErrors.applicantName}</p>}
           </div>
           <div>
             <Label>Applicant's Contact Email</Label>
-            <Input type="email" value={form.applicantEmail} onChange={handleChange('applicantEmail')} />
+            <Input type="email" value={form.applicantEmail} onChange={handleChange('applicantEmail')} autoCapitalize="off" />
             {fieldErrors.applicantEmail && <p className="text-sm text-red-600 mt-1">{fieldErrors.applicantEmail}</p>}
           </div>
           <div className="md:col-span-2">
             <Label>Full Address of Applicant</Label>
-            <Textarea value={form.applicantAddress} onChange={handleChange('applicantAddress')} />
+            <Textarea value={form.applicantAddress} onChange={handleChange('applicantAddress')} autoCapitalize="words" />
             {fieldErrors.applicantAddress && <p className="text-sm text-red-600 mt-1">{fieldErrors.applicantAddress}</p>}
           </div>
           <div>
             <Label>Applicant's Contact Phone Number</Label>
-            <Input value={form.applicantPhone} onChange={handleChange('applicantPhone')} />
+            <Input value={form.applicantPhone} onChange={handleChange('applicantPhone')} autoCapitalize="off" />
             {fieldErrors.applicantPhone && <p className="text-sm text-red-600 mt-1">{fieldErrors.applicantPhone}</p>}
           </div>
         </CardContent>
@@ -414,27 +439,27 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>Preferred Company Name</Label>
-            <Input value={form.preferredName} onChange={handleChange('preferredName')} />
+            <Input value={form.preferredName} onChange={handleChange('preferredName')} autoCapitalize="words" />
             {fieldErrors.preferredName && <p className="text-sm text-red-600 mt-1">{fieldErrors.preferredName}</p>}
           </div>
           <div>
             <Label>Alternative Company Name</Label>
-            <Input value={form.alternativeName} onChange={handleChange('alternativeName')} />
+            <Input value={form.alternativeName} onChange={handleChange('alternativeName')} autoCapitalize="words" />
             {fieldErrors.alternativeName && <p className="text-sm text-red-600 mt-1">{fieldErrors.alternativeName}</p>}
           </div>
           <div className="md:col-span-2">
             <Label>Description of Company Activities</Label>
-            <Textarea value={form.companyActivities} onChange={handleChange('companyActivities')} />
+            <Textarea value={form.companyActivities} onChange={handleChange('companyActivities')} autoCapitalize="sentences" />
             {fieldErrors.companyActivities && <p className="text-sm text-red-600 mt-1">{fieldErrors.companyActivities}</p>}
           </div>
           <div>
             <Label>Company Address</Label>
-            <Input value={form.companyAddress} onChange={handleChange('companyAddress')} />
+            <Input value={form.companyAddress} onChange={handleChange('companyAddress')} autoCapitalize="words" />
             {fieldErrors.companyAddress && <p className="text-sm text-red-600 mt-1">{fieldErrors.companyAddress}</p>}
           </div>
           <div>
             <Label>Eircode / Postal Code</Label>
-            <Input value={form.companyEircode} onChange={handleChange('companyEircode')} />
+            <Input value={form.companyEircode} onChange={handleChange('companyEircode')} autoCapitalize="off" />
             {fieldErrors.companyEircode && <p className="text-sm text-red-600 mt-1">{fieldErrors.companyEircode}</p>}
           </div>
         </CardContent>
@@ -480,28 +505,28 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Full Name</Label>
-                    <Input value={director.fullName} onChange={handleDirectorChange(index, 'fullName')} />
+                    <Input value={director.fullName} onChange={handleDirectorChange(index, 'fullName')} autoCapitalize="words" />
                     {fieldErrors[directorErrorKey(index, 'fullName')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'fullName')]}</p>
                     )}
                   </div>
                   <div>
                     <Label>Contact Email</Label>
-                    <Input type="email" value={director.email} onChange={handleDirectorChange(index, 'email')} />
+                    <Input type="email" value={director.email} onChange={handleDirectorChange(index, 'email')} autoCapitalize="off" />
                     {fieldErrors[directorErrorKey(index, 'email')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'email')]}</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
                     <Label>Address</Label>
-                    <Textarea value={director.address} onChange={handleDirectorChange(index, 'address')} />
+                    <Textarea value={director.address} onChange={handleDirectorChange(index, 'address')} autoCapitalize="words" />
                     {fieldErrors[directorErrorKey(index, 'address')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'address')]}</p>
                     )}
                   </div>
                   <div>
                     <Label>Contact Phone Number</Label>
-                    <Input value={director.phone} onChange={handleDirectorChange(index, 'phone')} />
+                    <Input value={director.phone} onChange={handleDirectorChange(index, 'phone')} autoCapitalize="off" />
                     {fieldErrors[directorErrorKey(index, 'phone')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'phone')]}</p>
                     )}
@@ -515,21 +540,21 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
                   </div>
                   <div>
                     <Label>Nationality</Label>
-                    <Input value={director.nationality} onChange={handleDirectorChange(index, 'nationality')} />
+                    <Input value={director.nationality} onChange={handleDirectorChange(index, 'nationality')} autoCapitalize="words" />
                     {fieldErrors[directorErrorKey(index, 'nationality')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'nationality')]}</p>
                     )}
                   </div>
                   <div>
                     <Label>PPS Number</Label>
-                    <Input value={director.pps} onChange={handleDirectorChange(index, 'pps')} />
+                    <Input value={director.pps} onChange={handleDirectorChange(index, 'pps')} autoCapitalize="off" />
                     {fieldErrors[directorErrorKey(index, 'pps')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'pps')]}</p>
                     )}
                   </div>
                   <div>
                     <Label>Profession</Label>
-                    <Input value={director.profession} onChange={handleDirectorChange(index, 'profession')} />
+                    <Input value={director.profession} onChange={handleDirectorChange(index, 'profession')} autoCapitalize="words" />
                     {fieldErrors[directorErrorKey(index, 'profession')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[directorErrorKey(index, 'profession')]}</p>
                     )}
@@ -550,18 +575,24 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
 
       <Card>
         <CardHeader>
-          <h4 className="text-base font-medium">Secretary Details (Required only if applicable)</h4>
+          <h4 className="text-base font-medium">Secretary Details</h4>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center gap-2 md:col-span-2">
-            <Checkbox id="has-secretary" checked={hasSecretary} onCheckedChange={(checked) => setHasSecretary(Boolean(checked))} />
-            <Label htmlFor="has-secretary">I will appoint a company secretary</Label>
+          <div className="flex items-start gap-2 md:col-span-2">
+            <Checkbox
+              id="secretary-is-nexus"
+              checked={form.secretaryIsNexus}
+              onCheckedChange={handleCheckboxChange('secretaryIsNexus')}
+            />
+            <Label htmlFor="secretary-is-nexus" className="text-sm font-normal">
+              I would like Nexus Ventures to act as my company secretary and/or provide registered office services.
+            </Label>
           </div>
-          {hasSecretary && (
+          {!form.secretaryIsNexus && (
             <>
               <div>
                 <Label>Secretary's Full Name</Label>
-                <Input value={form.secretaryName} onChange={handleChange('secretaryName')} />
+                <Input value={form.secretaryName} onChange={handleChange('secretaryName')} autoCapitalize="words" />
                 {fieldErrors.secretaryName && <p className="text-sm text-red-600 mt-1">{fieldErrors.secretaryName}</p>}
               </div>
               <div>
@@ -571,22 +602,22 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
               </div>
               <div className="md:col-span-2">
                 <Label>Secretary's Address</Label>
-                <Textarea value={form.secretaryAddress} onChange={handleChange('secretaryAddress')} />
+                <Textarea value={form.secretaryAddress} onChange={handleChange('secretaryAddress')} autoCapitalize="words" />
                 {fieldErrors.secretaryAddress && <p className="text-sm text-red-600 mt-1">{fieldErrors.secretaryAddress}</p>}
               </div>
               <div>
                 <Label>Secretary's Telephone Number</Label>
-                <Input value={form.secretaryPhone} onChange={handleChange('secretaryPhone')} />
+                <Input value={form.secretaryPhone} onChange={handleChange('secretaryPhone')} autoCapitalize="off" />
                 {fieldErrors.secretaryPhone && <p className="text-sm text-red-600 mt-1">{fieldErrors.secretaryPhone}</p>}
               </div>
               <div>
                 <Label>Secretary's Email</Label>
-                <Input type="email" value={form.secretaryEmail} onChange={handleChange('secretaryEmail')} />
+                <Input type="email" value={form.secretaryEmail} onChange={handleChange('secretaryEmail')} autoCapitalize="off" />
                 {fieldErrors.secretaryEmail && <p className="text-sm text-red-600 mt-1">{fieldErrors.secretaryEmail}</p>}
               </div>
               <div>
                 <Label>Secretary's Nationality</Label>
-                <Input value={form.secretaryNationality} onChange={handleChange('secretaryNationality')} />
+                <Input value={form.secretaryNationality} onChange={handleChange('secretaryNationality')} autoCapitalize="words" />
                 {fieldErrors.secretaryNationality && <p className="text-sm text-red-600 mt-1">{fieldErrors.secretaryNationality}</p>}
               </div>
             </>
@@ -625,14 +656,14 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Full Name</Label>
-                    <Input value={owner.fullName} onChange={handleOwnerChange(index, 'fullName')} />
+                    <Input value={owner.fullName} onChange={handleOwnerChange(index, 'fullName')} autoCapitalize="words" />
                     {fieldErrors[ownerErrorKey(index, 'fullName')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[ownerErrorKey(index, 'fullName')]}</p>
                     )}
                   </div>
                   <div>
                     <Label>Nationality</Label>
-                    <Input value={owner.nationality} onChange={handleOwnerChange(index, 'nationality')} />
+                    <Input value={owner.nationality} onChange={handleOwnerChange(index, 'nationality')} autoCapitalize="words" />
                     {fieldErrors[ownerErrorKey(index, 'nationality')] && (
                       <p className="text-sm text-red-600 mt-1">{fieldErrors[ownerErrorKey(index, 'nationality')]}</p>
                     )}

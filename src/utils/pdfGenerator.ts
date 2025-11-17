@@ -3,6 +3,8 @@ import autoTable from 'jspdf-autotable';
 import { LogbookData } from '@/types/logbook';
 import logoImage from '@/assets/nexus-ventures-logo.png';
 
+import type { CompanyIncorporationData } from '@/components/CompanyIncorporationForm';
+
 // Extend jsPDF type to include autoTable properties
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable?: {
@@ -29,22 +31,22 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
   }
 
   // Title
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('app.title.mileage') : 'Business Mileage Logbook – Ireland', marginLeft, yPos + 5);
   yPos += 11;
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
   yPos += 12;
 
   // Driver & Vehicle Information
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('driver.section.title') : 'Driver & Vehicle Information', marginLeft, yPos);
   yPos += 8;
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
 
   const driverVehicleData = [
@@ -111,7 +113,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
       ]],
       body: tripTableData,
       theme: 'grid',
-      styles: { fontSize: 7, cellPadding: 1 },
+      styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 8 },
@@ -143,7 +145,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
   yPos += 15;
 
   // Annual Totals
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('mileage.totals') : 'Annual Totals', marginLeft, yPos);
   yPos += 8;
@@ -155,7 +157,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
       [t ? t('totals.totalKmAll') : 'Total km (All):', data.total_km_all.toString(), t ? t('totals.totalKmBusiness') : 'Total km (Business):', data.total_km_business.toString(), t ? t('totals.businessPercent') : 'Business %:', data.business_percent.toString() + '%']
     ],
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 35 },
       1: { cellWidth: 25 },
@@ -172,7 +174,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
   yPos += 15;
 
   // Running Costs
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('runningCosts.title') : 'Running Costs (Annual)', marginLeft, yPos);
   yPos += 8;
@@ -188,7 +190,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
     head: [],
     body: runningCostsData,
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 45 },
       1: { cellWidth: 45 },
@@ -203,7 +205,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
   yPos += 15;
 
   // Capital Allowances
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('capitalAllowances.title') : 'Capital Allowances', marginLeft, yPos);
   yPos += 8;
@@ -215,7 +217,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
       [t ? t('capitalAllowances.carCost') : 'Car Cost:', `€${data.car_cost_eur || '0.00'}`, t ? t('capitalAllowances.purchaseDate') : 'Purchase Date:', data.purchase_date_ca, (t ? t('capitalAllowances.co2Band').replace(/\u2082/g, '2') : 'CO2 Band'), data.co2_band]
     ],
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 25 },
       1: { cellWidth: 35 },
@@ -237,12 +239,12 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
     yPos = 20;
   }
 
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('declaration.title') : 'Declaration', marginLeft, yPos);
   yPos += 8;
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   const declarationText = t ? t('mileage.declaration') : 'I confirm the above journeys were necessarily incurred in the performance of my duties (excludes commuting).';
   const splitText = doc.splitTextToSize(declarationText, contentWidth - 10);
@@ -257,7 +259,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
       [t ? t('form.signature') : 'Signature:', data.signature, t ? t('form.date') : 'Date:', data.signed_date]
     ],
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 25 },
       1: { cellWidth: 70, fontStyle: 'italic' },
@@ -300,22 +302,22 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   }
 
   // Title
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('app.title.expense') : 'Expense Report', marginLeft, yPos + 5);
   yPos += 11;
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
   yPos += 12;
 
   // Personal Information
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('expense.personal.info') : 'Personal Information', marginLeft, yPos);
   yPos += 8;
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
 
   const personalData = [
@@ -331,7 +333,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     head: [],
     body: personalData,
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 40 },
       1: { cellWidth: 50 },
@@ -347,7 +349,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   yPos += 15;
 
   // Vehicle Information
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('expense.vehicle.info') : 'Vehicle Information', marginLeft, yPos);
   yPos += 8;
@@ -362,7 +364,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     head: [],
     body: vehicleData,
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 40 },
       1: { cellWidth: 50 },
@@ -377,7 +379,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   yPos += 15;
 
   // Mileage
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('expense.mileage.reading') : 'Mileage Reading', marginLeft, yPos);
   yPos += 8;
@@ -392,7 +394,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     head: [],
     body: mileageData,
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 60 },
       1: { cellWidth: 40 },
@@ -407,7 +409,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   yPos += 15;
 
   // Expenses
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('expense.expenses') : 'Expenses', marginLeft, yPos);
   yPos += 8;
@@ -423,7 +425,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     head: [],
     body: expensesData,
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 35 },
       1: { cellWidth: 45 },
@@ -438,12 +440,12 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
 
   // Notes
   if (formData.notas) {
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text(t ? t('form.notes') : 'Notes', marginLeft, yPos);
     yPos += 8;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     const splitNotes = doc.splitTextToSize(formData.notas, contentWidth);
     doc.text(splitNotes, marginLeft, yPos);
@@ -453,12 +455,12 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   }
 
   // Declaration
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('declaration.title') : 'Declaration', marginLeft, yPos);
   yPos += 8;
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   const declarationText = t ? t('expense.declaration') : 'I confirm that the above expenses were necessarily incurred in the performance of my duties.';
   const splitDeclaration = doc.splitTextToSize(declarationText, contentWidth);
@@ -467,7 +469,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
 
 
   // Signature
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text(t ? t('form.signature') : 'Signature', marginLeft, yPos);
   yPos += 8;
@@ -479,7 +481,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
       [t ? t('form.signature') : 'Signature:', formData.firma, t ? t('form.date') : 'Date:', formData.fecha_firma]
     ],
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 25 },
       1: { cellWidth: 70, fontStyle: 'italic' },
@@ -498,6 +500,254 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.text(pageNumber, pageWidth - 20, pageHeight - 10);
+  }
+
+  return doc;
+};
+
+export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) => {
+  const doc: jsPDFWithAutoTable = new jsPDF();
+  const marginLeft = 12;
+  const marginRight = 12;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+
+  let yPos = 10;
+
+  try {
+    const logoWidth = 32;
+    const logoHeight = 14
+    doc.addImage(logoImage, 'PNG', pageWidth - marginRight - logoWidth, yPos, logoWidth, logoHeight);
+  } catch (error) {
+    console.error('Error adding logo to company PDF:', error);
+  }
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Company Incorporation Form', marginLeft, yPos + 5);
+  yPos += 12;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Application details for company incorporation', marginLeft, yPos);
+  yPos += 15;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Applicant Information', marginLeft, yPos);
+  yPos += 4;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: [
+      ['Full Name', data.applicant.fullName, 'Email', data.applicant.email],
+      ['Phone', data.applicant.phone, '', ''],
+      ['Address', data.applicant.address, '', '']
+    ],
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 1.5 },
+    headStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 28 },
+      1: { cellWidth: (contentWidth / 2) - 28 },
+      2: { fontStyle: 'bold', cellWidth: 24 },
+      3: { cellWidth: (contentWidth / 2) - 24 }
+    },
+    tableWidth: contentWidth
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
+  yPos += 10;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Company Information', marginLeft, yPos);
+  yPos += 4;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: [
+      ['Preferred Name', data.company.preferredName, 'Alternative Name', data.company.alternativeName],
+      ['Address', data.company.address, 'Eircode', data.company.eircode],
+      ['Activities', data.company.activities, '', '']
+    ],
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 1.5 },
+    headStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 30 },
+      1: { cellWidth: (contentWidth / 2) - 30 },
+      2: { fontStyle: 'bold', cellWidth: 28 },
+      3: { cellWidth: (contentWidth / 2) - 28 }
+    },
+    tableWidth: contentWidth
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
+  yPos += 10;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Directors', marginLeft, yPos);
+  yPos += 8;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+
+  data.directors.forEach((d, idx) => {
+    if (yPos > 260) {
+      doc.addPage();
+      yPos = 15;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Director ${idx + 1}`, marginLeft, yPos);
+    yPos += 3;
+    doc.setFont('helvetica', 'normal');
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [],
+      body: [
+        ['Full Name', d.fullName, 'Email', d.email],
+        ['Phone', d.phone, 'DOB', d.dob],
+        ['Address', d.address, 'Nationality', d.nationality],
+        ['PPS', d.pps, 'Profession', d.profession]
+      ],
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 30 },
+        1: { cellWidth: (contentWidth / 2) - 30 },
+        2: { fontStyle: 'bold', cellWidth: 30 },
+        3: { cellWidth: (contentWidth / 2) - 30 }
+      },
+      tableWidth: contentWidth
+    });
+
+    yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
+    yPos += 6;
+  });
+
+  yPos += 6;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Company Secretary', marginLeft, yPos);
+  yPos += 6;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+
+  if (data.secretary?.isNexusSecretary) {
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Field', 'Value']],
+      body: [['Company Secretary', 'NEXUS to be appointed as company secretary']],
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 45 },
+        1: { cellWidth: contentWidth - 45 }
+      }
+    });
+  } else if (data.secretary) {
+    autoTable(doc, {
+      startY: yPos,
+      head: [],
+      body: [
+        ['Full Name', data.secretary.fullName, 'DOB', data.secretary.dob],
+        ['Phone', data.secretary.phone, 'Email', data.secretary.email],
+        ['Address', data.secretary.address, 'Nationality', data.secretary.nationality]
+      ],
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 30 },
+        1: { cellWidth: (contentWidth / 2) - 30 },
+        2: { fontStyle: 'bold', cellWidth: 28 },
+        3: { cellWidth: (contentWidth / 2) - 28 }
+      },
+      tableWidth: contentWidth
+    });
+  }
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+  yPos += 12;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Ownership & Share Capital', marginLeft, yPos);
+  yPos += 8;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  const ownersBody = data.ownership.owners.map((o, idx) => [
+    String(idx + 1),
+    o.fullName,
+    o.nationality,
+    `${o.sharePercentage}%`
+  ]);
+
+  if (ownersBody.length) {
+    autoTable(doc, {
+      startY: yPos,
+      head: [],
+      body: ownersBody,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 65 },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 30 }
+      },
+      tableWidth: contentWidth
+    });
+
+    yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
+  }
+
+  yPos += 10;
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [],
+    body: [['Total Share Capital', `€${data.shareCapital.toString()}`]],
+    theme: 'plain',
+    styles: { fontSize: 8, cellPadding: 1.5 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60 },
+      1: { cellWidth: 40 }
+    }
+  });
+
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
+  yPos += 6;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  const confirmText =
+    'I confirm that the information provided is true and complete and that I wish to proceed with the incorporation as outlined.';
+  const split = doc.splitTextToSize(confirmText, contentWidth);
+  doc.text(split, marginLeft, yPos);
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const pageNumber = `${i}/${totalPages}`;
+    const w = doc.internal.pageSize.getWidth();
+    const h = doc.internal.pageSize.getHeight();
+    doc.text(pageNumber, w - 20, h - 10);
   }
 
   return doc;
