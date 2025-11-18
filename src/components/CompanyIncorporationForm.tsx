@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import FormActions from '@/components/FormActions';
 import { generateCompanyIncorporationPDF } from '@/utils/pdfGenerator';
+import SignaturePad from '@/components/SignaturePad';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
@@ -61,6 +62,8 @@ export type CompanyIncorporationData = {
   };
   shareCapital: number;
   confirmProceed: boolean;
+  signatureData?: string | null;
+  signatureDate?: string;
 };
 
 type FormState = {
@@ -136,6 +139,8 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
   const [confirmProceed, setConfirmProceed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [signatureDate, setSignatureDate] = useState('');
 
   const handleChange = (
     field: keyof FormState
@@ -297,6 +302,14 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
       errors.confirmProceed = 'You must confirm before submitting';
     }
 
+    if (!signatureDate) {
+      errors.signatureDate = 'Please provide date of signing';
+    }
+
+    if (!signatureData) {
+      errors.signatureData = 'Please provide a signature';
+    }
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -343,7 +356,9 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
       }))
     },
     shareCapital: shareOption === '100' ? 100 : Number(otherAmount || 0),
-    confirmProceed
+    confirmProceed,
+    signatureData,
+    signatureDate
   });
 
   const handleSubmit = async (event?: React.FormEvent) => {
@@ -365,6 +380,14 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
         icon: 'success',
         title: 'Submission received',
         text: 'We will contact you to proceed with payment and next steps.'
+      });
+    } catch (err) {
+      console.error('Company incorporation onSubmit failed:', err);
+      const msg = err instanceof Error ? err.message : 'Unable to submit incorporation form';
+      await Swal.fire({
+        icon: 'error',
+        title: 'Submission failed',
+        text: msg
       });
     } finally {
       setSubmitting(false);
@@ -731,10 +754,30 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
           <div className="flex items-start gap-3">
             <Checkbox id="confirm-proceed" checked={confirmProceed} onCheckedChange={(checked) => setConfirmProceed(Boolean(checked))} />
             <Label htmlFor="confirm-proceed" className="text-sm font-normal">
-              Do you wish to proceed with the incorporation and accept the payment commitment of €399 + 23% VAT (€490.77)?
+              I wish to proceed with the incorporation and accept the payment commitment of €399 + 23% VAT (€490.77)?
             </Label>
           </div>
           {fieldErrors.confirmProceed && <p className="text-sm text-red-600 mt-1">{fieldErrors.confirmProceed}</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <Label htmlFor="signatureDate">Date of signing</Label>
+              <Input id="signatureDate" type="date" value={signatureDate} onChange={(e) => setSignatureDate(e.target.value)} />
+              {fieldErrors.signatureDate && <p className="text-sm text-red-600 mt-1">{fieldErrors.signatureDate}</p>}
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="signature">Signature(s)</Label>
+              <SignaturePad accepted={Boolean(signatureData)} onChange={(data) => setSignatureData(data)} width={600} height={160} />
+              {fieldErrors.signatureData && <p className="text-sm text-red-600 mt-1">{fieldErrors.signatureData}</p>}
+              {signatureData && (
+                <div className="mt-2">
+                  <div className="text-xs text-muted-foreground mb-1">Signature preview</div>
+                  <div className="signature-preview">
+                    <img title="Accepted signature preview" src={signatureData} alt="signature preview" className="border rounded" style={{ maxWidth: 300 }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </CardContent>
         <CardFooter>
           <FormActions onSubmit={() => handleSubmit()} isSubmitting={submitting} submitLabel="Submit" />

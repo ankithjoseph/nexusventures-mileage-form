@@ -92,8 +92,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(({ onChan
       exportCanvas.height = Math.round(height * exportRatio);
       const ctx = exportCanvas.getContext('2d');
       if (!ctx) return null;
-      // draw the current visible canvas onto export canvas scaled
-      // draw image from original canvas (which is already scaled by devicePixelRatio)
+      // draw the current visible canvas onto export canvas scaled, preserving transparency
       ctx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
       return exportCanvas.toDataURL('image/png');
     },
@@ -128,7 +127,19 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(({ onChan
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, width, height);
         setHasContent(true);
-        onChange?.(canvas.toDataURL('image/png'));
+        // Export as PNG to preserve transparency; downscale to ~1.5x DPR to limit size
+        const ratio = window.devicePixelRatio || 1;
+        const exportRatio = Math.min(ratio * 1.5, 3);
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = Math.round(width * exportRatio);
+        exportCanvas.height = Math.round(height * exportRatio);
+        const ectx = exportCanvas.getContext('2d');
+        if (ectx) {
+          ectx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+          onChange?.(exportCanvas.toDataURL('image/png'));
+        } else {
+          onChange?.(canvas.toDataURL('image/png'));
+        }
       };
       img.src = dataUrl;
     };
@@ -151,8 +162,21 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(({ onChan
         <button title="Discard the pending signature" type="button" onClick={clear} className="inline-flex items-center px-3 py-1.5 rounded bg-gray-100 text-sm">Discard</button>
         <button title="Accept the pending signature" type="button" onClick={() => {
           const sp = signaturePadRef.current;
-          if (!sp || sp.isEmpty()) return;
-          const data = sp.toDataURL('image/png');
+          const canvas = canvasRef.current;
+          if (!sp || sp.isEmpty() || !canvas) return;
+          // Export as PNG with transparency; downscale to ~1.5x DPR to limit size
+          const ratio = window.devicePixelRatio || 1;
+          const exportRatio = Math.min(ratio * 1.5, 3);
+          const exportCanvas = document.createElement('canvas');
+          // Use visible CSS width/height as base for scaling
+          const cssWidth = (canvas.style.width ? parseFloat(canvas.style.width) : 600) || 600;
+          const cssHeight = (canvas.style.height ? parseFloat(canvas.style.height) : 200) || 200;
+          exportCanvas.width = Math.round(cssWidth * exportRatio);
+          exportCanvas.height = Math.round(cssHeight * exportRatio);
+          const ectx = exportCanvas.getContext('2d');
+          if (!ectx) return;
+          ectx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+          const data = exportCanvas.toDataURL('image/png');
           setHasContent(true);
           onChange?.(data);
         }} className="inline-flex items-center px-3 py-1.5 rounded bg-emerald-100 text-sm">Accept</button>

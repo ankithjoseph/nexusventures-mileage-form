@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { LogbookData } from '@/types/logbook';
 import logoImage from '@/assets/nexus-ventures-logo.png';
+import italogo from '@/assets/ITA-logo.png';
 
 import type { CompanyIncorporationData } from '@/components/CompanyIncorporationForm';
 
@@ -13,7 +14,7 @@ interface jsPDFWithAutoTable extends jsPDF {
 }
 
 export const generatePDF = (data: LogbookData, _includeFillableFields: boolean = false, t?: (key: string) => string) => {
-  const doc: jsPDFWithAutoTable = new jsPDF();
+  const doc: jsPDFWithAutoTable = new jsPDF({ compress: true });
   const marginLeft = 15;
   const marginRight = 15;
   const pageWidth = 210; // A4 width in mm
@@ -284,7 +285,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
 };
 
 export const generateExpensePDF = (formData: any, t?: (key: string) => string) => {
-  const doc: jsPDFWithAutoTable = new jsPDF();
+  const doc: jsPDFWithAutoTable = new jsPDF({ compress: true });
   const marginLeft = 15;
   const marginRight = 15;
   const pageWidth = 210; // A4 width in mm
@@ -506,7 +507,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
 };
 
 export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) => {
-  const doc: jsPDFWithAutoTable = new jsPDF();
+  const doc: jsPDFWithAutoTable = new jsPDF({ compress: true });
   const marginLeft = 12;
   const marginRight = 12;
   const pageWidth = 210;
@@ -514,8 +515,18 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
 
   let yPos = 10;
 
+  // Helper to ensure there is enough space left on the page for upcoming content.
+  const ensureSpace = (neededHeight: number) => {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const bottomMargin = 10; // keep consistent footer spacing
+    if (yPos + neededHeight > pageHeight - bottomMargin) {
+      doc.addPage();
+      yPos = 10; // top margin for subsequent pages
+    }
+  };
+
   try {
-    const logoWidth = 32;
+    const logoWidth = 38;
     const logoHeight = 14
     doc.addImage(logoImage, 'PNG', pageWidth - marginRight - logoWidth, yPos, logoWidth, logoHeight);
   } catch (error) {
@@ -525,11 +536,11 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.text('Company Incorporation Form', marginLeft, yPos + 5);
-  yPos += 12;
+  yPos += 10;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Application details for company incorporation', marginLeft, yPos);
-  yPos += 15;
+  yPos += 10;
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -559,7 +570,7 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
   });
 
   yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
-  yPos += 10;
+  yPos += 8;
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -589,8 +600,9 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
   });
 
   yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
-  yPos += 10;
+  yPos += 8;
 
+  ensureSpace(18);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('Directors', marginLeft, yPos);
@@ -599,10 +611,7 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
   doc.setFont('helvetica', 'normal');
 
   data.directors.forEach((d, idx) => {
-    if (yPos > 260) {
-      doc.addPage();
-      yPos = 15;
-    }
+    ensureSpace(48); // rough space for one director block
 
     doc.setFont('helvetica', 'bold');
     doc.text(`Director ${idx + 1}`, marginLeft, yPos);
@@ -634,28 +643,26 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
     yPos += 6;
   });
 
-  yPos += 6;
+  yPos += 2;
 
+  ensureSpace(24);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('Company Secretary', marginLeft, yPos);
-  yPos += 6;
+  yPos += 4;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
 
   if (data.secretary?.isNexusSecretary) {
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Field', 'Value']],
-      body: [['Company Secretary', 'NEXUS to be appointed as company secretary']],
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 1.5 },
-      headStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 45 },
-        1: { cellWidth: contentWidth - 45 }
-      }
-    });
+    yPos += 2;
+    const text = 'NEXUS VENTURES to be appointed as company secretary';
+    const lines = doc.splitTextToSize(text, contentWidth);
+    ensureSpace((lines as string[]).length * 5 + 2);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(lines, marginLeft, yPos);
+    //yPos += 8;
+    (doc as any).lastAutoTable = undefined;
   } else if (data.secretary) {
     autoTable(doc, {
       startY: yPos,
@@ -678,13 +685,14 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
     });
   }
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
-  yPos += 12;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 4;
+  yPos += 6;
 
+  ensureSpace(28);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('Ownership & Share Capital', marginLeft, yPos);
-  yPos += 8;
+  yPos += 4;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
 
@@ -715,7 +723,7 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
     yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
   }
 
-  yPos += 10;
+  yPos += 4;
 
   autoTable(doc, {
     startY: yPos,
@@ -729,15 +737,56 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
     }
   });
 
-  yPos = doc.lastAutoTable?.finalY ?? yPos + 8;
+  yPos = doc.lastAutoTable?.finalY ?? yPos + 6;
   yPos += 6;
 
+  // Declaration section
+  ensureSpace(16); // declaration heading + text + signature/date
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Declaration', marginLeft, yPos);
+  yPos += 6;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
   const confirmText =
     'I confirm that the information provided is true and complete and that I wish to proceed with the incorporation as outlined.';
   const split = doc.splitTextToSize(confirmText, contentWidth);
   doc.text(split, marginLeft, yPos);
+
+  // Space after statement
+  yPos += 4;
+  ensureSpace(10); // space for signature/date after declaration text
+
+
+  // Signature image only (no label/border) with date to the right
+  const sigW = Math.min(contentWidth * 0.7, 110);
+  const sigH = 22;
+  const sigX = marginLeft;
+  const sigY = yPos;
+  try {
+    if (data.signatureData) {
+      doc.addImage(data.signatureData as string, 'PNG', sigX, sigY, sigW, sigH);
+    }
+  } catch {}
+
+  if (data.signatureDate) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    const dateX = sigX + sigW + 8;
+    const dateY = sigY + sigH - (sigH/2);
+    const pageMaxX = doc.internal.pageSize.getWidth() - 12; // respect right margin
+    const text = "Date: " + String(data.signatureDate);
+    if (dateX + 30 > pageMaxX) {
+      // Fallback: print below signature if not enough horizontal space
+      doc.text(text, sigX, sigY + sigH + 6);
+      yPos = sigY + sigH + 10;
+    } else {
+      doc.text(text, dateX, dateY);
+      yPos = sigY + sigH + 8;
+    }
+  } else {
+    yPos = sigY + sigH + 6;
+  }
 
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
@@ -749,6 +798,285 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
     const h = doc.internal.pageSize.getHeight();
     doc.text(pageNumber, w - 20, h - 10);
   }
+
+  return doc;
+};
+
+
+export interface SepaPdfData {
+  name: string;
+  address?: string;
+  city?: string;
+  postcode?: string;
+  country?: string;
+  iban: string;
+  bic: string;
+  creditor?: string; // defaults to Nexus Ventures
+  paymentType?: 'recurrent' | 'one-off' | '';
+  signatureDate?: string;
+  signatureData?: string | null; // data URL (PNG)
+}
+
+export const generateSepaPDF = (data: SepaPdfData) => {
+  const doc: jsPDF = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  const pageWidth = (doc as any).internal.pageSize.getWidth();
+
+  doc.setFillColor(228, 224, 206);
+  doc.rect(10, 10, pageWidth - 20, 18, 'F');
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SEPA Direct Debit Mandate', pageWidth / 2, 22, { align: 'center' } as any);
+
+  try {
+    const logoW = 30;
+    const logoH = 12;
+    doc.addImage(logoImage as unknown as string, 'PNG', pageWidth - 12 - logoW, 12, logoW, logoH);
+  } catch {}
+
+  const headerBottom = 10 + 18;
+  const creditorBandY = headerBottom + 2;
+  const creditorBandH = 20;
+  doc.setFillColor(219, 234, 254);
+  doc.rect(10, creditorBandY, pageWidth - 20, creditorBandH, 'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Creditor Identifier: IE75ZZZ362238', 14, creditorBandY + creditorBandH / 2 + 4);
+
+  const legalStart = creditorBandY + creditorBandH + 4;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const legal = 'By signing this mandate form, you authorise (A) Nexus Ventures Ltd to send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Nexus Ventures Ltd. As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. Please complete all the fields below marked *';
+  const splitted = doc.splitTextToSize(legal, pageWidth - 24);
+  doc.text(splitted as any, 12, legalStart);
+
+  let y = legalStart + (splitted as string[]).length * 4 + 6;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Customer Name :', 12, y);
+  doc.setDrawColor(0);
+  doc.rect(60, y - 6, pageWidth - 72, 8);
+  if (data.name) {
+    doc.setFont('helvetica', 'normal');
+    doc.text(data.name, 62, y);
+  }
+
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Customer Address:', 12, y);
+  doc.setDrawColor(0);
+  doc.rect(60, y - 8, pageWidth - 72, 24);
+  if (data.address) {
+    doc.setFont('helvetica', 'normal');
+    const addressLines = doc.splitTextToSize(data.address, pageWidth - 80);
+    doc.text(addressLines as any, 62, y + 2);
+  }
+
+  y += 34;
+  doc.setFont('helvetica', 'bold');
+  doc.text('*City:', 12, y);
+  const cityBoxX = 30;
+  const cityBoxW = 40;
+  const postcodeBoxX = cityBoxX + cityBoxW + 25;
+  const postcodeBoxW = 40;
+  const countryBoxW = 40;
+  const countryBoxX = pageWidth - countryBoxW - 12;
+  doc.rect(cityBoxX, y - 6, cityBoxW, 8);
+  doc.rect(postcodeBoxX, y - 6, postcodeBoxW, 8);
+  doc.rect(countryBoxX, y - 6, countryBoxW, 8);
+  doc.text('*Postcode:', postcodeBoxX - 22, y);
+  doc.text('*Country:', countryBoxX - 20, y);
+  if (data.city) { doc.setFont('helvetica', 'normal'); doc.text(data.city, cityBoxX + 2, y); }
+  if (data.postcode) { doc.setFont('helvetica', 'normal'); doc.text(data.postcode, postcodeBoxX + 2, y); }
+  if (data.country) { doc.setFont('helvetica', 'normal'); doc.text(data.country, countryBoxX + 2, y); }
+
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Account number (IBAN) :', 12, y);
+  doc.rect(60, y - 6, pageWidth - 72, 8);
+  if (data.iban) { doc.setFont('helvetica', 'normal'); doc.text(data.iban, 62, y); }
+
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Swift BIC :', 12, y);
+  doc.rect(60, y - 6, 60, 8);
+  if (data.bic) { doc.setFont('helvetica', 'normal'); doc.text(data.bic, 62, y); }
+
+  y += 16;
+  doc.setDrawColor(0);
+  doc.rect(12, y, pageWidth - 24, 26);
+  doc.setFontSize(9);
+  doc.text('*Creditors Name : Nexus Ventures Limited & Irish Tax Agents Limited', 14, y + 6);
+  doc.text('*Creditors : Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2', 14, y + 12);
+  doc.text('*Country : Republic of Ireland', 14, y + 18);
+
+  y += 36;
+  doc.setFontSize(10);
+  doc.text('*Type of payment', 12, y);
+  const recurrentX = 70;
+  const oneOffX = 140;
+  doc.setDrawColor(0);
+  doc.circle(recurrentX, y - 1.5, 2, 'S');
+  doc.text('Recurrent', recurrentX + 6, y);
+  doc.circle(oneOffX, y - 1.5, 2, 'S');
+  doc.text('One-Off', oneOffX + 6, y);
+  if (data.paymentType === 'recurrent') { doc.setFillColor(0, 0, 0); doc.circle(recurrentX, y - 1.5, 1.2, 'F'); }
+  else if (data.paymentType === 'one-off') { doc.setFillColor(0, 0, 0); doc.circle(oneOffX, y - 1.5, 1.2, 'F'); }
+
+  y += 12;
+  doc.text('*Date of signing :', 12, y);
+  doc.rect(45, y - 6, 60, 8);
+  if (data.signatureDate) { doc.setFont('helvetica', 'normal'); doc.text(data.signatureDate, 47, y); }
+
+  y += 18;
+  doc.text('*Signature(s) :', 12, y);
+  const sigX = 60;
+  const sigY = y - 6;
+  const sigW = 100;
+  const sigH = 24;
+  doc.rect(sigX, sigY, sigW, sigH);
+  try {
+    if (data.signatureData) {
+      doc.addImage(data.signatureData, 'PNG', sigX + 2, sigY + 2, sigW - 4, sigH - 4);
+    }
+  } catch {}
+
+  return doc;
+};
+
+export interface CardPaymentPdfData {
+  name: string;
+  address?: string;
+  city?: string;
+  postcode?: string;
+  country?: string;
+  cardNumber: string;
+  expiry: string;
+  cvc: string;
+  creditor?: string; // defaults to Irish Tax Agents Limited
+  paymentType?: 'recurrent' | 'one-off' | '';
+  signatureDate?: string;
+  signatureData?: string | null; // data URL (PNG)
+}
+
+export const generateCardPaymentPDF = (data: CardPaymentPdfData) => {
+  const doc: jsPDF = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  const pageWidth = (doc as any).internal.pageSize.getWidth();
+
+  doc.setFillColor(228, 224, 206);
+  doc.rect(10, 10, pageWidth - 20, 18, 'F');
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CARD PAYMENT', pageWidth / 2, 22, { align: 'center' } as any);
+
+  try {
+    const logoW = 30;
+    const logoH = 14;
+    doc.addImage(italogo as unknown as string, 'PNG', pageWidth - 12 - logoW, 12, logoW, logoH);
+  } catch {}
+
+  const headerBottom = 10 + 18;
+  const creditorBandY = headerBottom + 2;
+  const creditorBandH = 20;
+  doc.setFillColor(219, 234, 254);
+  doc.rect(10, creditorBandY, pageWidth - 20, creditorBandH, 'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Creditor Identifier: IE58ZZZ362641', 14, creditorBandY + creditorBandH / 2 + 4);
+
+  const legalStart = creditorBandY + creditorBandH + 4;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const legal = 'Legal Text: By signing this mandate form, you authorise (A) Irish Tax Agents LTD. To send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Irish Tax Agents LTD. As part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank. Please complete all the fields below marked *';
+  const splitted = doc.splitTextToSize(legal, pageWidth - 24);
+  doc.text(splitted as any, 12, legalStart);
+
+  let y = legalStart + (splitted as string[]).length * 4 + 6;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Customer Name :', 12, y);
+  doc.rect(60, y - 6, pageWidth - 72, 8);
+  if (data.name) { doc.setFont('helvetica', 'normal'); doc.text(data.name, 62, y); }
+
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Customer Address:', 12, y);
+  doc.rect(60, y - 8, pageWidth - 72, 24);
+  if (data.address) {
+    doc.setFont('helvetica', 'normal');
+    const addressLines = doc.splitTextToSize(data.address, pageWidth - 80);
+    doc.text(addressLines as any, 62, y + 2);
+  }
+
+  y += 34;
+  doc.setFont('helvetica', 'bold');
+  doc.text('*City:', 12, y);
+  const cityBoxX = 30;
+  const cityBoxW = 40;
+  const postcodeBoxX = cityBoxX + cityBoxW + 25;
+  const postcodeBoxW = 40;
+  const countryBoxW = 40;
+  const countryBoxX = pageWidth - countryBoxW - 12;
+  doc.rect(cityBoxX, y - 6, cityBoxW, 8);
+  doc.rect(postcodeBoxX, y - 6, postcodeBoxW, 8);
+  doc.rect(countryBoxX, y - 6, countryBoxW, 8);
+  doc.text('*Postcode:', postcodeBoxX - 22, y);
+  doc.text('*Country:', countryBoxX - 20, y);
+  if (data.city) { doc.setFont('helvetica', 'normal'); doc.text(data.city, cityBoxX + 2, y); }
+  if (data.postcode) { doc.setFont('helvetica', 'normal'); doc.text(data.postcode, postcodeBoxX + 2, y); }
+  if (data.country) { doc.setFont('helvetica', 'normal'); doc.text(data.country, countryBoxX + 2, y); }
+
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Card Number', 12, y);
+  doc.rect(60, y - 6, pageWidth - 72, 8);
+  if (data.cardNumber) { doc.setFont('helvetica', 'normal'); doc.text(data.cardNumber, 62, y); }
+
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('*Expiration Date', 12, y);
+  doc.rect(60, y - 6, 40, 8);
+  doc.text('*CVC', 110, y);
+  doc.rect(126, y - 6, 30, 8);
+  if (data.expiry) { doc.setFont('helvetica', 'normal'); doc.text(data.expiry, 62, y); }
+  if (data.cvc) { doc.setFont('helvetica', 'normal'); doc.text(data.cvc, 128, y); }
+
+  y += 16;
+  doc.setDrawColor(0);
+  doc.rect(12, y, pageWidth - 24, 28);
+  doc.setFontSize(9);
+  doc.text('*Creditors Name: Irish Tax Agents Limited', 14, y + 6);
+  doc.text('*Creditors Address: Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin 4 (D04F1P2)', 14, y + 12);
+  doc.text('*Country: Republic of Ireland', 14, y + 18);
+
+  y += 36;
+  doc.setFontSize(10);
+  doc.text('*Type of payment', 12, y);
+  const recurrentX = 90;
+  const oneOffX = 160;
+  doc.circle(recurrentX, y - 1.5, 2, 'S');
+  doc.text('Recurrent', recurrentX + 6, y);
+  doc.circle(oneOffX, y - 1.5, 2, 'S');
+  doc.text('One-Off Payment', oneOffX + 6, y);
+  if (data.paymentType === 'recurrent') { doc.setFillColor(0, 0, 0); doc.circle(recurrentX, y - 1.5, 1.2, 'F'); }
+  else if (data.paymentType === 'one-off') { doc.setFillColor(0, 0, 0); doc.circle(oneOffX, y - 1.5, 1.2, 'F'); }
+
+  y += 12;
+  doc.text('*Date of signing:', 12, y);
+  doc.rect(45, y - 6, 60, 8);
+  if (data.signatureDate) { doc.setFont('helvetica', 'normal'); doc.text(data.signatureDate, 47, y); }
+
+  y += 18;
+  doc.text('*Signature(s):', 12, y);
+  const sigX = 60;
+  const sigY = y - 6;
+  const sigW = 100;
+  const sigH = 24;
+  doc.rect(sigX, sigY, sigW, sigH);
+  try {
+    if (data.signatureData) {
+      doc.addImage(data.signatureData, 'PNG', sigX + 2, sigY + 2, sigW - 4, sigH - 4);
+    }
+  } catch {}
 
   return doc;
 };

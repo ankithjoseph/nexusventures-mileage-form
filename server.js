@@ -444,9 +444,10 @@ app.post('/api/send-email', async (req, res) => {
 
     // Validate required fields per form type
     const isSepa = type === 'sepa';
-    if (isSepa) {
+    const isCompanyIncorporation = type === 'company-incorporation';
+    if (isSepa || isCompanyIncorporation) {
       if (!name || !email || !pdfData) {
-        return res.status(400).json({ error: 'Missing required fields for SEPA: name, email, pdfData' });
+        return res.status(400).json({ error: `Missing required fields for ${type}: name, email, pdfData` });
       }
     } else {
       if (!name || !email || !pps || !pdfData) {
@@ -460,6 +461,8 @@ app.post('/api/send-email', async (req, res) => {
       ? `Nuevo Expense Report - ${name}`
       : isSepa
       ? `Nuevo SEPA Mandate - ${name}`
+      : isCompanyIncorporation
+      ? `New Company Incorporation - ${name}`
       : `Nuevo Registro de Business Mileage - ${name}`;
 
     let html = '';
@@ -509,6 +512,24 @@ app.post('/api/send-email', async (req, res) => {
         <p style="font-size: 14px; color: #666; margin: 20px 0;">El PDF del mandato SEPA está adjunto.</p>
       </div>
     `;
+    } else if (isCompanyIncorporation) {
+      html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">New Company Incorporation</h1>
+        <p style="font-size: 16px; margin: 20px 0;">A new Company Incorporation form has been received.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Name:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>Email:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${email}</td>
+          </tr>
+        </table>
+        <p style="font-size: 14px; color: #666; margin: 20px 0;">The PDF is attached.</p>
+      </div>
+    `;
     } else {
       html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -540,7 +561,13 @@ app.post('/api/send-email', async (req, res) => {
     }
 
     // Send email via Resend
-  const filename = isExpenseReport ? 'expense-report.pdf' : isSepa ? 'sepa-mandate.pdf' : 'mileage-logbook.pdf';
+  const filename = isExpenseReport
+    ? 'expense-report.pdf'
+    : isSepa
+    ? 'sepa-mandate.pdf'
+    : isCompanyIncorporation
+    ? 'company-incorporation.pdf'
+    : 'mileage-logbook.pdf';
 
     // Normalize pdfData: accept either raw base64 or data URL (data:...;base64,...)
     let base64 = pdfData ?? '';
@@ -574,27 +601,30 @@ app.post('/api/send-email', async (req, res) => {
         }
       }
 
-      // Persist submission to PocketBase collection `expense_reports` (best-effort).
-      // The client sends the full form in the request body (see frontend). We'll attempt to
-      // apply a logged-in user's auth token when provided, set the `user` relation, and upload the PDF into a file field.
+      // Persist submission to PocketBase collection `expense_reports` (best-effort) for expense reports only.
+      // Other types (sepa, mileage, company-incorporation) are not persisted to PocketBase here.
       let pbSaved = { saved: false, id: null, error: null };
-      try {
-        // Apply token (if present) to pbServer
-        applyPbTokenFromRequest(pbServer, req);
+      if (isExpenseReport) {
+        try {
+          // Apply token (if present) to pbServer
+          applyPbTokenFromRequest(pbServer, req);
 
-        console.log('Preparing to persist submission to PocketBase collection "expense_reports"');
-        console.log('PocketBase base URL:', POCKETBASE_URL);
-        console.log('pbServer.authStore present:', !!pbServer?.authStore);
-        try { console.log('pbServer.authStore.token present:', Boolean(pbServer?.authStore?.token)); } catch (tErr) {}
+          console.log('Preparing to persist submission to PocketBase collection "expense_reports"');
+          console.log('PocketBase base URL:', POCKETBASE_URL);
+          console.log('pbServer.authStore present:', !!pbServer?.authStore);
+          try { console.log('pbServer.authStore.token present:', Boolean(pbServer?.authStore?.token)); } catch (tErr) {}
 
-        // Build form and POST via helper functions
-        const { form, usingWebFormData } = buildExpenseForm({ name, email, pps, type, req, base64, filename, pbClient: pbServer });
-        const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer });
-        pbSaved = { saved: true, id: pbResult?.id ?? null, error: null };
-        console.log('Saved expense report to PocketBase (with file):', pbSaved.id ?? '(no id)');
-      } catch (pbErr) {
-        pbSaved = { saved: false, id: null, error: String(pbErr?.message || pbErr) };
-        console.warn('PocketBase save (expense_reports) failed (non-fatal):', pbErr?.message || pbErr);
+          // Build form and POST via helper functions
+          const { form, usingWebFormData } = buildExpenseForm({ name, email, pps, type, req, base64, filename, pbClient: pbServer });
+          const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer });
+          pbSaved = { saved: true, id: pbResult?.id ?? null, error: null };
+          console.log('Saved expense report to PocketBase (with file):', pbSaved.id ?? '(no id)');
+        } catch (pbErr) {
+          pbSaved = { saved: false, id: null, error: String(pbErr?.message || pbErr) };
+          console.warn('PocketBase save (expense_reports) failed (non-fatal):', pbErr?.message || pbErr);
+        }
+      } else {
+        pbSaved = { saved: false, id: null, error: null };
       }
 
       // Then: attempt to send customer copy, but don't fail the whole request if it errors
@@ -670,6 +700,20 @@ app.post('/api/send-email', async (req, res) => {
                 </div>
               `;
               customerFilename = `mi-mandato-sepa-${today}.pdf`;
+            } else if (isCompanyIncorporation) {
+              // Company Incorporation customer confirmation
+              customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;
+              customerSubject = `Confirmation - Company Incorporation Form`;
+              customerHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px;">Thank you for your submission</h1>
+                  <p style="font-size: 16px; margin: 20px 0;">Dear ${name},</p>
+                  <p style="font-size: 16px; margin: 20px 0;">We have received your Company Incorporation form. A copy is attached for your records.</p>
+                  <p style="font-size: 14px; color: #718096; margin-top: 30px;">If you have any questions, please contact us.</p>
+                  <p style="font-size: 14px; margin-top: 30px;">Kind regards,<br><strong>Nexus Ventures Team</strong></p>
+                </div>
+              `;
+              customerFilename = `my-company-incorporation-${today}.pdf`;
             } else {
               // mileage/logbook
               customerFrom = `${FROM_NAME} <${FROM_ADDRESS}>`;

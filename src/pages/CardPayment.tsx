@@ -3,9 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import jsPDF from 'jspdf';
-import nexusLogo from '@/assets/nexus-ventures-logo.png';
-import italogo from '@/assets/ITA-logo.png';
+import { generateCardPaymentPDF } from '@/utils/pdfGenerator';
 import SignaturePad, { SignaturePadHandle } from '@/components/SignaturePad';
 import { toast } from '@/components/ui/use-toast';
 import ThankYouDialog from '@/components/ThankYouDialog';
@@ -56,166 +54,21 @@ const CardPayment: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const buildPdf = () => {
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    // Header band
-    doc.setFillColor(228, 224, 206);
-    doc.rect(10, 10, pageWidth - 20, 18, 'F');
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CARD PAYMENT', pageWidth / 2, 22, { align: 'center' });
-
-    // Logo top-right
-    try {
-      const logoW = 30;
-      const logoH = 14;
-      doc.addImage(italogo, 'PNG', pageWidth - 12 - logoW, 12, logoW, logoH);
-    } catch (err) {
-      // ignore
-    }
-
-    // Creditor identifier band
-    const headerBottom = 10 + 18;
-    const creditorBandY = headerBottom + 2;
-    const creditorBandH = 20;
-    doc.setFillColor(219, 234, 254);
-    doc.rect(10, creditorBandY, pageWidth - 20, creditorBandH, 'F');
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('*Creditor Identifier: IE58ZZZ362641', 14, creditorBandY + creditorBandH / 2 + 4);
-
-    // Legal text
-    const legalStart = creditorBandY + creditorBandH + 4;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    const legal = `Legal Text: By signing this mandate form, you authorise (A) Irish Tax Agents LTD. To send instructions to your bank to debit your account and (B) your bank to debit your account in accordance with the instruction from Irish Tax Agents LTD.\nAs part of your rights, you are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited. Your rights are explained in a statement that you can obtain from your bank. Please complete all the fields below marked *`;
-    const splitted = doc.splitTextToSize(legal, pageWidth - 24);
-    doc.text(splitted, 12, legalStart);
-
-    // Fields positions
-    let y = legalStart + splitted.length * 4 + 6;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Customer Name :', 12, y);
-    doc.rect(60, y - 6, pageWidth - 72, 8);
-    if (name) {
-      doc.setFont('helvetica', 'normal');
-      doc.text(name, 62, y);
-    }
-
-    y += 14;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Customer Address:', 12, y);
-    doc.rect(60, y - 8, pageWidth - 72, 24);
-    if (address) {
-      doc.setFont('helvetica', 'normal');
-      const addressLines = doc.splitTextToSize(address, pageWidth - 80);
-      doc.text(addressLines, 62, y + 2);
-    }
-
-    y += 34;
-    doc.setFont('helvetica', 'bold');
-    // City, Postcode and Country fields (three separate boxes)
-  // place labels to the left of each box and adjust box widths to fit the page
-  doc.text('*City:', 12, y);
-  // compute box geometry (kept simple constants to match layout)
-  const cityBoxX = 30;
-  const cityBoxW = 40; // reduced width so city box is not excessively wide
-  const postcodeBoxX = cityBoxX + cityBoxW + 25; // small gap
-  const postcodeBoxW = 40;
-  const countryBoxW = 40;
-  const countryBoxX = pageWidth- countryBoxW-12;
-
-  // boxes
-  doc.rect(cityBoxX, y - 6, cityBoxW, 8);   // city box
-  doc.rect(postcodeBoxX, y - 6, postcodeBoxW, 8);  // postcode box
-  doc.rect(countryBoxX, y - 6, countryBoxW, 8);  // country box
-
-  // labels for postcode and country placed left of their boxes
-  doc.text('*Postcode:', postcodeBoxX - 22, y);
-  doc.text('*Country:', countryBoxX - 20, y);
-
-  // field values inside boxes
-  if (city) {
-    doc.setFont('helvetica', 'normal');
-    doc.text(city, cityBoxX + 2, y);
-  }
-  if (postcode) {
-    doc.setFont('helvetica', 'normal');
-    doc.text(postcode, postcodeBoxX + 2, y);
-  }
-  if (country) {
-    doc.setFont('helvetica', 'normal');
-    doc.text(country, countryBoxX + 2, y);
-  }
-
-    y += 14;
-    doc.setFont('helvetica', 'bold');
-    doc.text('*Card Number', 12, y);
-    doc.rect(60, y - 6, pageWidth - 72, 8);
-    if (cardNumber) {
-      doc.setFont('helvetica', 'normal');
-      doc.text(cardNumber, 62, y);
-    }
-
-    y += 14;
-    doc.setFont('helvetica', 'bold');
-    doc.text('*Expiration Date', 12, y);
-    doc.rect(60, y - 6, 40, 8);
-    doc.text('*CVC', 110, y);
-    doc.rect(126, y - 6, 30, 8);
-    if (expiry) doc.setFont('helvetica', 'normal'), doc.text(expiry, 62, y);
-    if (cvc) doc.setFont('helvetica', 'normal'), doc.text(cvc, 128, y);
-
-    // Info box
-    y += 16;
-    doc.setDrawColor(0);
-    doc.rect(12, y, pageWidth - 24, 28);
-    doc.setFontSize(9);
-    doc.text('*Creditors Name: Irish Tax Agents Limited', 14, y + 6);
-    doc.text('*Creditors Address: Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin 4 (D04F1P2)', 14, y + 12);
-    doc.text('*Country: Republic of Ireland', 14, y + 18);
-
-    y += 36;
-    doc.setFontSize(10);
-    doc.text('*Type of payment', 12, y);
-    const recurrentX = 90;
-    const oneOffX = 160;
-    doc.circle(recurrentX, y - 1.5, 2, 'S');
-    doc.text('Recurrent', recurrentX + 6, y);
-    doc.circle(oneOffX, y - 1.5, 2, 'S');
-    doc.text('One-Off Payment', oneOffX + 6, y);
-    if (paymentType === 'recurrent') {
-      doc.setFillColor(0, 0, 0);
-      doc.circle(recurrentX, y - 1.5, 1.2, 'F');
-    } else if (paymentType === 'one-off') {
-      doc.setFillColor(0, 0, 0);
-      doc.circle(oneOffX, y - 1.5, 1.2, 'F');
-    }
-
-    y += 12;
-    doc.text('*Date of signing:', 12, y);
-    doc.rect(45, y - 6, 60, 8);
-    if (signatureDate) doc.setFont('helvetica', 'normal'), doc.text(signatureDate, 47, y);
-
-    y += 18;
-    doc.text('*Signature(s):', 12, y);
-    const sigX = 60;
-    const sigY = y - 6;
-    const sigW = 100;
-    const sigH = 24;
-    doc.rect(sigX, sigY, sigW, sigH);
-    try {
-      const dataUrl = signatureData ?? sigPadRef.current?.getDataUrl(3);
-      if (dataUrl) doc.addImage(dataUrl, 'PNG', sigX + 2, sigY + 2, sigW - 4, sigH - 4);
-    } catch (err) {
-      // ignore
-    }
-
-    return doc;
-  };
+  const buildPdf = () =>
+    generateCardPaymentPDF({
+      name,
+      address,
+      city,
+      postcode,
+      country,
+      cardNumber,
+      expiry,
+      cvc,
+      creditor,
+      paymentType,
+      signatureDate,
+      signatureData: signatureData ?? sigPadRef.current?.getDataUrl(1.5) ?? null,
+    });
 
   const downloadPdf = () => {
     try {
