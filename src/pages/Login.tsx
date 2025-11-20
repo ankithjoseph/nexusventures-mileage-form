@@ -16,9 +16,8 @@ const Login: React.FC = () => {
   const location = useLocation();
 
   const [mode, setMode] = useState<'initial' | 'login' | 'signup' | 'reset'>(() => {
-    // If the user was redirected here after verification (or from a protected route),
-    // show the login form directly.
-    if ((location.state as any)?.verified || (location.state as any)?.from) {
+    // If the user was redirected here after verification, show the login form directly.
+    if ((location.state as any)?.verified) {
       return 'login';
     }
     return 'initial';
