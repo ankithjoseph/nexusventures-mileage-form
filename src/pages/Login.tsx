@@ -15,7 +15,14 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [mode, setMode] = useState<'initial' | 'login' | 'signup' | 'reset'>('initial');
+  const [mode, setMode] = useState<'initial' | 'login' | 'signup' | 'reset'>(() => {
+    // If the user was redirected here after verification (or from a protected route),
+    // show the login form directly.
+    if ((location.state as any)?.verified || (location.state as any)?.from) {
+      return 'login';
+    }
+    return 'initial';
+  });
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,7 +79,7 @@ const Login: React.FC = () => {
     e?.preventDefault();
     setLoading(true);
     try {
-      await login(email, password, remember);
+      await login(email.toLowerCase(), password, remember);
       toast({ title: 'Signed in', description: 'Welcome back!' });
 
       // Check if there is a stored redirect path in the user record (for cross-device verification support)
@@ -119,7 +126,7 @@ const Login: React.FC = () => {
       // please add a text field named `signup_redirect_path` to your `users` collection in PocketBase.
       // If the field does not exist, this extra data will be ignored by PocketBase.
       await pb.collection('users').create({
-        email,
+        email: email.toLowerCase(),
         password,
         passwordConfirm,
         name,
@@ -128,7 +135,7 @@ const Login: React.FC = () => {
       try {
         const usersColl: any = pb.collection('users');
         if (usersColl && typeof usersColl.requestVerification === 'function') {
-          await usersColl.requestVerification(email);
+          await usersColl.requestVerification(email.toLowerCase());
         } else {
           console.warn('pb.collection("users").requestVerification not available; skipping explicit verification request');
         }
@@ -176,7 +183,7 @@ const Login: React.FC = () => {
       const resp = await fetch('/api/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail, recaptchaToken }),
+        body: JSON.stringify({ email: resetEmail.toLowerCase(), recaptchaToken }),
       });
       const json = await resp.json();
       if (!resp.ok) {
