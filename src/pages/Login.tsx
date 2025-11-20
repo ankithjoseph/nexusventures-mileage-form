@@ -81,7 +81,7 @@ const Login: React.FC = () => {
 
       if (savedRedirect && typeof savedRedirect === 'string' && savedRedirect.startsWith('/')) {
         // Clear the stored redirect path asynchronously
-        pb.collection('users').update(user!.id, { signup_redirect_path: null }).catch(() => {});
+        pb.collection('users').update(user!.id, { signup_redirect_path: null }).catch(() => { });
         navigate(savedRedirect, { replace: true });
       } else {
         navigate(from, { replace: true });
@@ -118,12 +118,12 @@ const Login: React.FC = () => {
       // Note: To support redirecting to the correct page after verification on a different device,
       // please add a text field named `signup_redirect_path` to your `users` collection in PocketBase.
       // If the field does not exist, this extra data will be ignored by PocketBase.
-      await pb.collection('users').create({ 
-        email, 
-        password, 
-        passwordConfirm, 
+      await pb.collection('users').create({
+        email,
+        password,
+        passwordConfirm,
         name,
-        signup_redirect_path: from 
+        signup_redirect_path: from
       });
       try {
         const usersColl: any = pb.collection('users');
