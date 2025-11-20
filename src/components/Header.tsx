@@ -124,7 +124,7 @@ const AuthButtons = () => {
   }
 
   return (
-    <Button size="sm" onClick={() => navigate('/login')}>
+    <Button size="sm" onClick={() => navigate(`/login?returnTo=${encodeURIComponent(location.pathname + location.search)}`)}>
       <User className="mr-2 h-4 w-4" />
       Login
     </Button>

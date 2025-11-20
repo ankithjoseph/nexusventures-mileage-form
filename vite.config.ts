@@ -61,6 +61,8 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom', 'react-router-dom'],
             ui: ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-dropdown-menu'],
             utils: ['date-fns', 'clsx', 'tailwind-merge'],
+            pdf: ['jspdf', 'jspdf-autotable'],
+            pocketbase: ['pocketbase'],
           },
           assetFileNames: (assetInfo) => {
             const info = assetInfo.name?.split('.') ?? [];

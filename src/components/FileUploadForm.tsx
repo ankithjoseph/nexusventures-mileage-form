@@ -48,10 +48,10 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   const [existingRecordLoaded, setExistingRecordLoaded] = useState(false);
   const [existingFiles, setExistingFiles] = useState<Record<string, string[]>>({});
   const [existingFilesAttached, setExistingFilesAttached] = useState(false);
-  
+
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [lastAmlRecordId, setLastAmlRecordId] = useState<string | null>(null);
-  
+
 
   const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -169,7 +169,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
     const file = e.target.files?.[0] ?? null;
     setProofIsExisting(false);
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
 
     if (!file) {
       setProofFile(null);
@@ -221,12 +221,12 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       const isImage = !!(mime && mime.startsWith('image')) || /\.(jpg|jpeg|png|gif)$/i.test(name || '');
       const isPdf = (mime === 'application/pdf') || (name || '').toLowerCase().endsWith('.pdf') || url.toLowerCase().endsWith('.pdf');
 
-  const container = document.createElement('div');
-  container.style.width = '100%';
-  container.style.display = 'flex';
-  container.style.justifyContent = 'center';
-  container.style.alignItems = 'center';
-  container.style.padding = '0';
+      const container = document.createElement('div');
+      container.style.width = '100%';
+      container.style.display = 'flex';
+      container.style.justifyContent = 'center';
+      container.style.alignItems = 'center';
+      container.style.padding = '0';
 
       if (isImage) {
         const img = document.createElement('img');
@@ -273,7 +273,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         },
         didClose: () => {
           if (createdObjectUrl) {
-            try { URL.revokeObjectURL(url); } catch (e) {}
+            try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
           }
         }
       });
@@ -282,7 +282,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       try {
         const fallbackUrl = typeof source === 'string' ? source : '';
         if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener');
-      } catch (e) {}
+      } catch (e) { /* ignore */ }
     }
   };
 
@@ -361,9 +361,9 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         if (ph && !phone) setPhone(ph);
         if (addr && !address) setAddress(addr);
         if (nat && !nationality) setNationality(nat);
-  if (dobVal && !dob) setDob(formatToDateInput(dobVal));
+        if (dobVal && !dob) setDob(formatToDateInput(dobVal));
         if (compName && !companyName) setCompanyName(compName);
-  if (compCRO && !companyCRO) setCompanyCRO(compCRO);
+        if (compCRO && !companyCRO) setCompanyCRO(compCRO);
 
         setProfileLoaded(true);
         // after loading profile, attempt to fetch any existing AML application for this user
@@ -527,7 +527,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       if (!authToken) {
         try {
           await pb.collection('users').authRefresh();
-        } catch (_) {}
+        } catch (_) { }
         authToken = (pb.authStore as any)?.token;
       }
       if (!authToken) {
@@ -547,8 +547,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           window.open(url, '_blank', 'noopener');
           return;
         }
-  const blob = await resp.blob();
-  showPreviewSwal(blob, filename, blob.type || undefined);
+        const blob = await resp.blob();
+        showPreviewSwal(blob, filename, blob.type || undefined);
         return;
       } catch (err) {
         console.error('[FileFetch] server proxy fetch failed', err);
@@ -570,8 +570,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         if (finalToken) headers['Authorization'] = `Bearer ${finalToken}`;
         const resp = await fetch(url, { headers });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const blob = await resp.blob();
-  showPreviewSwal(blob, filename, blob.type || undefined);
+        const blob = await resp.blob();
+        showPreviewSwal(blob, filename, blob.type || undefined);
         return;
       } catch (err) {
         console.error('[FileFetch] Authorization fallback failed', err);
@@ -598,7 +598,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
     }
   };
 
-  
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -608,7 +608,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
     // per-file validation
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
     if (passportFile) {
       if (passportFile.size > maxSizeBytes) return setError('Passport file is too large (max 10MB)');
       // If file.type is not present, fall back to extension check
@@ -623,8 +623,8 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       if (!allowedTypes.includes(proofFile.type) && !prExtOk) return setError('Proof of address must be PNG, JPG, HEIC/HEIF or PDF');
     }
 
-  setLoading(true);
-  setUploadProgress(0);
+    setLoading(true);
+    setUploadProgress(0);
     try {
       const formData = new FormData();
 
@@ -658,42 +658,42 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         formData.append('proof_of_address', proofFile, proofFilename);
       }
 
-  // user authentication will be validated below and appended to the FormData
+      // user authentication will be validated below and appended to the FormData
 
-  // Ensure the relation field 'user' is set — the collection schema requires it
-  const currentUserId = (pb.authStore.model as any)?.id ?? (user as any)?.id ?? '';
-  // Avoid logging sensitive ids in production; keep only minimal debug when needed
-  if (!currentUserId) throw new Error('You must be signed in to submit the form');
-  // For relation fields (maxSelect:1) PocketBase accepts the related record id as the field value
-  formData.append('user', currentUserId);
+      // Ensure the relation field 'user' is set — the collection schema requires it
+      const currentUserId = (pb.authStore.model as any)?.id ?? (user as any)?.id ?? '';
+      // Avoid logging sensitive ids in production; keep only minimal debug when needed
+      if (!currentUserId) throw new Error('You must be signed in to submit the form');
+      // For relation fields (maxSelect:1) PocketBase accepts the related record id as the field value
+      formData.append('user', currentUserId);
 
-        // Create or update the record directly with the PocketBase client as the authenticated user
-        // The SDK will attach the user's auth token automatically from pb.authStore
-        let resp: any = null;
-        if (existingAmlRecord && existingAmlRecord.id) {
-          // Update existing record (only append file fields if new files selected)
-          resp = await pb.collection('aml_applications').update(existingAmlRecord.id, formData);
-        } else {
-          // Ensure the relation field 'user' is set for new records
-          formData.append('user', currentUserId);
-          resp = await pb.collection('aml_applications').create(formData);
-        }
+      // Create or update the record directly with the PocketBase client as the authenticated user
+      // The SDK will attach the user's auth token automatically from pb.authStore
+      let resp: any = null;
+      if (existingAmlRecord && existingAmlRecord.id) {
+        // Update existing record (only append file fields if new files selected)
+        resp = await pb.collection('aml_applications').update(existingAmlRecord.id, formData);
+      } else {
+        // Ensure the relation field 'user' is set for new records
+        formData.append('user', currentUserId);
+        resp = await pb.collection('aml_applications').create(formData);
+      }
 
-    // do not clear the form immediately — keep values visible so the user can
-    // verify what was submitted. We'll clear / reload after the user closes
-    // the thank-you dialog (see handleThankYouClose below).
-    setUploadProgress(0);
-    const created = resp.record ?? resp;
-    onComplete?.(created);
-    // remember record id so we can notify admin when user closes thank-you dialog
-    try {
-      setLastAmlRecordId(created?.id ?? null);
-    } catch (e) {}
-    // show thank-you dialog
-    setThankYouOpen(true);
+      // do not clear the form immediately — keep values visible so the user can
+      // verify what was submitted. We'll clear / reload after the user closes
+      // the thank-you dialog (see handleThankYouClose below).
+      setUploadProgress(0);
+      const created = resp.record ?? resp;
+      onComplete?.(created);
+      // remember record id so we can notify admin when user closes thank-you dialog
+      try {
+        setLastAmlRecordId(created?.id ?? null);
+      } catch (e) { }
+      // show thank-you dialog
+      setThankYouOpen(true);
     } catch (err: any) {
-  // Avoid logging full error objects which may contain sensitive data (tokens/ids).
-  console.error('Submit failed', err?.message ?? String(err));
+      // Avoid logging full error objects which may contain sensitive data (tokens/ids).
+      console.error('Submit failed', err?.message ?? String(err));
 
       // PocketBase validation errors are usually returned in err.response.data.data
       const respData = err?.response?.data ?? err?.data ?? null;
@@ -733,12 +733,12 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   };
 
   return (
-  <Card className="container mx-auto px-4 py-8 max-w-4xl flex-1">
+    <Card className="container mx-auto px-4 py-8 max-w-4xl flex-1">
       <CardContent>
         <h1 className="text-2xl font-semibold mb-4 text-primary">AML Compliance Form</h1>
-    <p className="text-sm text-muted-foreground mb-4">Provide the information and required documents for AML compliance.</p>
-    
-  <form id="aml-form" onSubmit={handleSubmit} className="space-y-6">
+        <p className="text-sm text-muted-foreground mb-4">Provide the information and required documents for AML compliance.</p>
+
+        <form id="aml-form" onSubmit={handleSubmit} className="space-y-6">
           {existingRecordLoaded && existingAmlRecord && (
             <div className="p-3 rounded-md bg-green-50 border border-green-200">
               <div className="text-sm font-medium text-green-900">Previously submitted AML application</div>
@@ -838,7 +838,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               <Input
                 type="file"
                 accept="image/*,application/pdf,.heic,.heif"
-                onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
+                onChange={(e) => { const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
               />
               <div className="mt-2 flex items-center gap-2">
                 {passportFile && <button type="button" className="text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button>}
@@ -867,7 +867,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               <Input
                 type="file"
                 accept="image/*,application/pdf,.heic,.heif"
-                onChange={(e)=>{ const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
+                onChange={(e) => { const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
               />
               <div className="mt-2 flex items-center gap-2">
                 {proofFile && <button type="button" className="text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button>}
@@ -913,95 +913,95 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         </div>
       </CardFooter>
       {/* Preview handled by SweetAlert2 */}
-          <ThankYouDialog
-                open={thankYouOpen}
-                onOpenChange={(v) => setThankYouOpen(v)}
-                title="Thank you"
-                description={
-                  'Your AML compliance form has been submitted. We will review the documents and contact you if anything else is required.'
+      <ThankYouDialog
+        open={thankYouOpen}
+        onOpenChange={(v) => setThankYouOpen(v)}
+        title="Thank you"
+        description={
+          'Your AML compliance form has been submitted. We will review the documents and contact you if anything else is required.'
+        }
+        primaryLabel="Close"
+        onPrimary={async () => {
+          // When the user confirms the thank-you dialog, first notify
+          // the admin via server-side email with attached documents,
+          // then reload the latest AML record to re-attach files.
+          try {
+            if (lastAmlRecordId) {
+              // show loading modal
+              Swal.fire({
+                title: 'Submitting…',
+                html: 'Submitting attached documents…',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+              });
+
+              // Convert selected files (if any) to base64 and include in request
+              const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+                try {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const result = reader.result as string;
+                    const parts = result.split(',');
+                    resolve(parts.length > 1 ? parts[1] : result);
+                  };
+                  reader.onerror = (err) => reject(err);
+                  reader.readAsDataURL(file);
+                } catch (err) { reject(err); }
+              });
+
+              const filesPayload: Array<any> = [];
+              try {
+                if (passportFile) {
+                  const b64 = await fileToBase64(passportFile);
+                  const pExt = (passportFile.name && passportFile.name.includes('.')) ? passportFile.name.slice(passportFile.name.lastIndexOf('.')) : '';
+                  const passportFilename = `passport${pExt}`;
+                  filesPayload.push({ field: 'passport', filename: passportFilename, content: b64, type: passportFile.type || '' });
                 }
-                primaryLabel="Close"
-                onPrimary={async () => {
-                  // When the user confirms the thank-you dialog, first notify
-                  // the admin via server-side email with attached documents,
-                  // then reload the latest AML record to re-attach files.
-                  try {
-                    if (lastAmlRecordId) {
-                      // show loading modal
-                      Swal.fire({
-                        title: 'Submitting…',
-                        html: 'Submitting attached documents…',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
-                      });
+                if (proofFile) {
+                  const b64 = await fileToBase64(proofFile);
+                  const prExt = (proofFile.name && proofFile.name.includes('.')) ? proofFile.name.slice(proofFile.name.lastIndexOf('.')) : '';
+                  const proofFilename = `address-proof${prExt}`;
+                  filesPayload.push({ field: 'proof_of_address', filename: proofFilename, content: b64, type: proofFile.type || '' });
+                }
+              } catch (err) {
+                console.warn('Failed to read files for admin email', err);
+              }
 
-                      // Convert selected files (if any) to base64 and include in request
-                      const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-                        try {
-                          const reader = new FileReader();
-                          reader.onload = () => {
-                            const result = reader.result as string;
-                            const parts = result.split(',');
-                            resolve(parts.length > 1 ? parts[1] : result);
-                          };
-                          reader.onerror = (err) => reject(err);
-                          reader.readAsDataURL(file);
-                        } catch (err) { reject(err); }
-                      });
+              // Include the current PocketBase auth token so the server
+              // can fetch private files on behalf of the user when needed.
+              const pbToken = (pb.authStore as any)?.token ?? '';
+              const resp = await fetch('/api/send-aml', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(pbToken ? { Authorization: `Bearer ${pbToken}` } : {}) },
+                body: JSON.stringify({ recordId: lastAmlRecordId, files: filesPayload }),
+              });
 
-                      const filesPayload: Array<any> = [];
-                      try {
-                        if (passportFile) {
-                          const b64 = await fileToBase64(passportFile);
-                          const pExt = (passportFile.name && passportFile.name.includes('.')) ? passportFile.name.slice(passportFile.name.lastIndexOf('.')) : '';
-                          const passportFilename = `passport${pExt}`;
-                          filesPayload.push({ field: 'passport', filename: passportFilename, content: b64, type: passportFile.type || '' });
-                        }
-                        if (proofFile) {
-                          const b64 = await fileToBase64(proofFile);
-                          const prExt = (proofFile.name && proofFile.name.includes('.')) ? proofFile.name.slice(proofFile.name.lastIndexOf('.')) : '';
-                          const proofFilename = `address-proof${prExt}`;
-                          filesPayload.push({ field: 'proof_of_address', filename: proofFilename, content: b64, type: proofFile.type || '' });
-                        }
-                      } catch (err) {
-                        console.warn('Failed to read files for admin email', err);
-                      }
+              Swal.close();
 
-                      // Include the current PocketBase auth token so the server
-                      // can fetch private files on behalf of the user when needed.
-                      const pbToken = (pb.authStore as any)?.token ?? '';
-                      const resp = await fetch('/api/send-aml', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...(pbToken ? { Authorization: `Bearer ${pbToken}` } : {}) },
-                        body: JSON.stringify({ recordId: lastAmlRecordId, files: filesPayload }),
-                      });
+              if (!resp.ok) {
+                let data = null;
+                try { data = await resp.json(); } catch (e) { /* ignore */ }
+                await Swal.fire('Document Submission failed', data?.error ?? 'Server returned an error', 'error');
+              } else {
+                await Swal.fire('Submitted', 'Documents submitted successfully.', 'success');
+              }
+            }
+          } catch (e) {
+            try {
+              Swal.close();
+            } catch (er) { }
+            await Swal.fire('Document Submission failed', 'Network error while submitting documents.', 'error');
+          }
 
-                      Swal.close();
-
-                      if (!resp.ok) {
-                        let data = null;
-                        try { data = await resp.json(); } catch (e) { /* ignore */ }
-                       await Swal.fire('Document Submission failed', data?.error ?? 'Server returned an error', 'error');
-                      } else {
-                       await Swal.fire('Submitted', 'Documents submitted successfully.', 'success');
-                      }
-                    }
-                  } catch (e) {
-                    try { 
-                     Swal.close();
-                     } catch (er) {}
-                    await Swal.fire('Document Submission failed', 'Network error while submitting documents.', 'error');
-                  }
-
-                  // Reload latest AML (re-attaches server files) then close dialog
-                  try {
-                    await reloadLatestAml();
-                  } catch (e) {
-                    console.error('reloadLatestAml failed', e);
-                  }
-                  setThankYouOpen(false);
-                }}
-          />
+          // Reload latest AML (re-attaches server files) then close dialog
+          try {
+            await reloadLatestAml();
+          } catch (e) {
+            console.error('reloadLatestAml failed', e);
+          }
+          setThankYouOpen(false);
+        }}
+      />
     </Card>
   );
 };

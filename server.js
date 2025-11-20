@@ -12,6 +12,8 @@ import { Resend } from 'resend';
 import PocketBase from 'pocketbase';
 import fs from 'fs/promises';
 import FormData from 'form-data';
+import compression from 'compression';
+import helmet from 'helmet';
 
 // Use global fetch when available (Node 18+). If not present, try to dynamically
 // import `node-fetch`. We avoid a static import so the server can run without
@@ -35,6 +37,11 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(compression());
 app.use(cors());
 // Increase JSON body limit to allow base64 file uploads from the client
 app.use(express.json({ limit: '100mb' }));
@@ -239,6 +246,11 @@ function checkAndIncrRate(map, key, max) {
 // users always get the latest asset manifest after a deploy.
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1y',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
 }));
 
 // Lightweight health/check endpoint to verify PocketBase reachability from the server.
