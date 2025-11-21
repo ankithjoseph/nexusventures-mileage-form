@@ -828,14 +828,8 @@ app.post('/api/send-aml', async (req, res) => {
     const { recordId } = req.body || {};
     if (!recordId) return res.status(400).json({ error: 'recordId required' });
 
-  // Fetch record from PocketBase
-    let record;
-    try {
-      record = await pbServer.collection('aml_applications').getOne(recordId);
-    } catch (e) {
-      console.error('Failed to fetch AML record from PocketBase:', e);
-      return res.status(500).json({ error: 'failed_fetch_record' });
-    }
+    // Create a request-specific PocketBase client to avoid shared state issues
+    const pb = new PocketBase(POCKETBASE_URL);
 
     // If the client provided a PocketBase token in the request (Authorization
     // header or x-pb-token), apply it so the server can fetch protected files
@@ -844,9 +838,18 @@ app.post('/api/send-aml', async (req, res) => {
     // session exists before attempting to download private files from PocketBase.
     let appliedPbToken = null;
     try {
-      appliedPbToken = applyPbTokenFromRequest(pbServer, req);
+      appliedPbToken = applyPbTokenFromRequest(pb, req);
     } catch (e) {
       appliedPbToken = null;
+    }
+
+  // Fetch record from PocketBase
+    let record;
+    try {
+      record = await pb.collection('aml_applications').getOne(recordId);
+    } catch (e) {
+      console.error('Failed to fetch AML record from PocketBase:', e);
+      return res.status(500).json({ error: 'failed_fetch_record' });
     }
 
     // Collect simple fields for email
@@ -907,8 +910,8 @@ app.post('/api/send-aml', async (req, res) => {
           // Try to obtain a short-lived file token (preferred)
           let fileToken = null;
           try {
-            if (pbServer.files && typeof pbServer.files.getToken === 'function') {
-              fileToken = await pbServer.files.getToken();
+            if (pb.files && typeof pb.files.getToken === 'function') {
+              fileToken = await pb.files.getToken();
             }
           } catch (e) {
             fileToken = null;
@@ -922,7 +925,7 @@ app.post('/api/send-aml', async (req, res) => {
 
           const headers = {};
           try {
-            if (!fileToken && pbServer?.authStore?.token) headers['Authorization'] = `Bearer ${pbServer.authStore.token}`;
+            if (!fileToken && pb?.authStore?.token) headers['Authorization'] = `Bearer ${pb.authStore.token}`;
           } catch (e) {}
 
           const fRes = await fetcher(fileUrl, { method: 'GET', headers });
