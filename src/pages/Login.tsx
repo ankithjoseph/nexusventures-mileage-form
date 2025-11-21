@@ -36,7 +36,8 @@ const Login: React.FC = () => {
   const [resetEmail, setResetEmail] = useState('');
 
   const params = new URLSearchParams(location.search);
-  const from = params.get('returnTo') || (location.state as any)?.from?.pathname || '/';
+  const returnTo = params.get('returnTo');
+  const from = returnTo || (location.state as any)?.from?.pathname || '/';
 
   // When the user switches to signup mode (either via the UI or programmatically),
   // persist an intended post-verification redirect so VerifyEmail can redirect
@@ -85,9 +86,9 @@ const Login: React.FC = () => {
       const user = pb.authStore.model;
       const savedRedirect = (user as any)?.signup_redirect_path;
 
-      if (savedRedirect && typeof savedRedirect === 'string' && savedRedirect.startsWith('/')) {
-        // Clear the stored redirect path asynchronously
-        pb.collection('users').update(user!.id, { signup_redirect_path: null }).catch(() => { });
+      if (returnTo) {
+        navigate(returnTo, { replace: true });
+      } else if (savedRedirect && typeof savedRedirect === 'string' && savedRedirect.startsWith('/')) {
         navigate(savedRedirect, { replace: true });
       } else {
         navigate(from, { replace: true });
