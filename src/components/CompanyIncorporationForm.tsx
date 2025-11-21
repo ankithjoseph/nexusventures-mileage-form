@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import FormActions from '@/components/FormActions';
-import { generateCompanyIncorporationPDF } from '@/utils/pdfGenerator';
 import SignaturePad from '@/components/SignaturePad';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -394,12 +393,6 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
     }
   };
 
-  const handleDownloadPdf = () => {
-    const payload = buildPayload();
-    const doc = generateCompanyIncorporationPDF(payload);
-    doc.save('company-incorporation.pdf');
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
@@ -417,12 +410,6 @@ const CompanyIncorporationForm: React.FC<Props> = ({ onSubmit }) => {
           </p>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={handleDownloadPdf} disabled={submitting}>
-          Download PDF
-        </Button>
-      </div>
 
       <Card>
         <CardHeader>
