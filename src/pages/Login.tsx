@@ -15,7 +15,13 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
+  const [mode, setMode] = useState<'initial' | 'login' | 'signup' | 'reset'>(() => {
+    // If the user was redirected here after verification, show the login form directly.
+    if ((location.state as any)?.verified) {
+      return 'login';
+    }
+    return 'initial';
+  });
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +35,9 @@ const Login: React.FC = () => {
   // Reset fields
   const [resetEmail, setResetEmail] = useState('');
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get('returnTo');
+  const from = returnTo || (location.state as any)?.from?.pathname || '/';
 
   // When the user switches to signup mode (either via the UI or programmatically),
   // persist an intended post-verification redirect so VerifyEmail can redirect
@@ -71,13 +79,24 @@ const Login: React.FC = () => {
     e?.preventDefault();
     setLoading(true);
     try {
-      await login(email, password, remember);
+      await login(email.toLowerCase(), password, remember);
       toast({ title: 'Signed in', description: 'Welcome back!' });
-      navigate(from, { replace: true });
+
+      // Check if there is a stored redirect path in the user record (for cross-device verification support)
+      const user = pb.authStore.model;
+      const savedRedirect = (user as any)?.signup_redirect_path;
+
+      if (returnTo) {
+        navigate(returnTo, { replace: true });
+      } else if (savedRedirect && typeof savedRedirect === 'string' && savedRedirect.startsWith('/')) {
+        navigate(savedRedirect, { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err: any) {
       console.error('Login error', err);
-      toast({ 
-        title: 'Sign in failed', 
+      toast({
+        title: 'Sign in failed',
         description: err?.message || 'Invalid credentials. Please try again.',
         variant: 'destructive'
       });
@@ -92,6 +111,10 @@ const Login: React.FC = () => {
       toast({ title: 'Name required', description: 'Please enter your full name', variant: 'destructive' });
       return;
     }
+    if (password.length < 8) {
+      toast({ title: 'Password too short', description: 'Password must be at least 8 characters long', variant: 'destructive' });
+      return;
+    }
     if (password !== passwordConfirm) {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
@@ -103,11 +126,20 @@ const Login: React.FC = () => {
     }
     setLoading(true);
     try {
-      await pb.collection('users').create({ email, password, passwordConfirm, name });
+      // Note: To support redirecting to the correct page after verification on a different device,
+      // please add a text field named `signup_redirect_path` to your `users` collection in PocketBase.
+      // If the field does not exist, this extra data will be ignored by PocketBase.
+      await pb.collection('users').create({
+        email: email.toLowerCase(),
+        password,
+        passwordConfirm,
+        name,
+        signup_redirect_path: from
+      });
       try {
         const usersColl: any = pb.collection('users');
         if (usersColl && typeof usersColl.requestVerification === 'function') {
-          await usersColl.requestVerification(email);
+          await usersColl.requestVerification(email.toLowerCase());
         } else {
           console.warn('pb.collection("users").requestVerification not available; skipping explicit verification request');
         }
@@ -118,7 +150,14 @@ const Login: React.FC = () => {
       setMode('login');
     } catch (err: any) {
       console.error('Signup error', err);
-      toast({ title: 'Signup failed', description: err?.message || 'Unable to create account', variant: 'destructive' });
+      let errorMessage = err?.message || 'Unable to create account';
+      if (err?.data?.data) {
+        const messages = Object.values(err.data.data).map((e: any) => e.message).filter(Boolean);
+        if (messages.length > 0) {
+          errorMessage = messages.join('. ');
+        }
+      }
+      toast({ title: 'Signup failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -155,7 +194,7 @@ const Login: React.FC = () => {
       const resp = await fetch('/api/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail, recaptchaToken }),
+        body: JSON.stringify({ email: resetEmail.toLowerCase(), recaptchaToken }),
       });
       const json = await resp.json();
       if (!resp.ok) {
@@ -192,97 +231,118 @@ const Login: React.FC = () => {
             className="h-16 w-auto object-contain mb-4"
           />
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Create an account' : 'Reset your password'}
+            {mode === 'initial' ? 'Welcome' : mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Create an account' : 'Reset your password'}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Sign up to create a new account. You will receive a verification email - you must verify before signing in.' : 'Enter the email address associated with your account and we\'ll send a password reset link.'}
+            {mode === 'initial' ? 'Do you have an account?' : mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Sign up to create a new account. You will receive a verification email - you must verify before signing in.' : 'Enter the email address associated with your account and we\'ll send a password reset link.'}
           </p>
         </div>
 
-  <form onSubmit={mode === 'login' ? handleSubmit : mode === 'signup' ? handleSignup : handleReset} className="space-y-5" autoComplete={formAutoComplete}>
-          {mode === 'signup' && (
-            <div className="space-y-2">
-              <Label htmlFor="signup-name">Full name</Label>
-              <Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required aria-required="true" />
+        {mode === 'initial' ? (
+          <div className="space-y-4 w-full mt-6">
+            <Button onClick={() => setMode('login')} className="w-full" size="lg">
+              Sign In
+            </Button>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or
+                </span>
+              </div>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input 
-              id="email" 
-              name="email"
-              type="email" 
-              value={mode === 'reset' ? resetEmail : email} 
-              onChange={(e) => mode === 'reset' ? setResetEmail(e.target.value) : setEmail(e.target.value)} 
-              placeholder="you@example.com"
-              required 
-              autoComplete={emailAutoComplete}
-            />
+            <Button onClick={() => setMode('signup')} className="w-full" size="lg" variant="outline">
+              Create an Account
+            </Button>
           </div>
-
-          {mode === 'signup' && (
-            <div className="grid grid-cols-2 gap-4">
+        ) : (
+          <form onSubmit={mode === 'login' ? handleSubmit : mode === 'signup' ? handleSignup : handleReset} className="space-y-5" autoComplete={formAutoComplete}>
+            {mode === 'signup' && (
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
-                <Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={passwordAutoComplete} />
+                <Label htmlFor="signup-name">Full name</Label>
+                <Input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required aria-required="true" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-password-confirm">Confirm</Label>
-                <Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete={passwordAutoComplete} />
-              </div>
-            </div>
-          )}
+            )}
 
-          {mode === 'login' && (
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={mode === 'reset' ? resetEmail : email}
+                onChange={(e) => mode === 'reset' ? setResetEmail(e.target.value) : setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete={emailAutoComplete}
+              />
+            </div>
+
+            {mode === 'signup' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input id="signup-password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={passwordAutoComplete} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password-confirm">Confirm</Label>
+                  <Input id="signup-password-confirm" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required autoComplete={passwordAutoComplete} />
+                </div>
+              </div>
+            )}
+
+            {mode === 'login' && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
                   name="password"
-                  type="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  required 
+                  required
                   autoComplete={passwordAutoComplete}
                 />
-            </div>
-          )}
-
-          {mode === 'login' && (
-            <div className="flex items-center justify-between">
-              <label className="inline-flex items-center space-x-2 cursor-pointer">
-                <input 
-                  id="remember"
-                  name="remember"
-                  type="checkbox" 
-                  checked={remember} 
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="rounded border-input"
-                />
-                <span className="text-sm text-muted-foreground">Remember me</span>
-              </label>
-              <button type="button" onClick={() => setMode('reset')} className="text-sm text-primary hover:underline">
-                Forgot password?
-              </button>
-            </div>
-          )}
-
-          <Button type="submit" disabled={loading} className="w-full" size="lg">
-            {loading ? (
-              <>{mode === 'login' ? 'Signing in…' : mode === 'signup' ? 'Creating…' : 'Sending…'}</>
-            ) : (
-              <>
-                <LogIn className="w-4 h-4 mr-2" />
-                {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create account' : 'Send reset link'}
-              </>
+              </div>
             )}
-          </Button>
-        </form>
+
+            {mode === 'login' && (
+              <div className="flex items-center justify-between">
+                <label className="inline-flex items-center space-x-2 cursor-pointer">
+                  <input
+                    id="remember"
+                    name="remember"
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <span className="text-sm text-muted-foreground">Remember me</span>
+                </label>
+                <button type="button" onClick={() => setMode('reset')} className="text-sm text-primary hover:underline">
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full" size="lg">
+              {loading ? (
+                <>{mode === 'login' ? 'Signing in…' : mode === 'signup' ? 'Creating…' : 'Sending…'}</>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4 mr-2" />
+                  {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create account' : 'Send reset link'}
+                </>
+              )}
+            </Button>
+          </form>
+        )}
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          {mode === 'login' ? (
+          {mode === 'initial' ? null : mode === 'login' ? (
             <>
               <span>Don't have an account? </span>
               <button type="button" onClick={() => setMode('signup')} className="text-primary hover:underline font-medium">Sign up</button>

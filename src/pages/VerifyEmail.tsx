@@ -63,7 +63,7 @@ const VerifyEmail: React.FC = () => {
                 // expired or invalid -> remove it
                 try {
                   localStorage.removeItem('post_verify_redirect');
-                } catch (e) {}
+                } catch (e) { }
               }
             }
           } catch (e) {
@@ -74,14 +74,14 @@ const VerifyEmail: React.FC = () => {
         if (redirectTo) {
           try {
             localStorage.removeItem('post_verify_redirect');
-          } catch (e) {}
+          } catch (e) { }
           navigate(redirectTo, { replace: true });
         } else {
           // if authStore is valid, navigate to dashboard; otherwise to login
           if ((pb.authStore as any).isValid) {
             navigate('/', { replace: true });
           } else {
-            navigate('/login', { replace: true });
+            navigate('/login', { replace: true, state: { verified: true } });
           }
         }
       } catch (err: any) {
@@ -110,7 +110,7 @@ const VerifyEmail: React.FC = () => {
             <div className="text-lg font-semibold">Email verified</div>
             <div>Thanks — your email has been verified. You can now sign in.</div>
             <div>
-              <Button onClick={() => navigate('/login')}>Sign in</Button>
+              <Button onClick={() => navigate('/login', { state: { verified: true } })}>Sign in</Button>
             </div>
           </div>
         )}

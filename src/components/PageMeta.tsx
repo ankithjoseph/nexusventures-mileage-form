@@ -31,7 +31,7 @@ const upsertMeta = (selector: string, attr: string, value: string) => {
 };
 
 const upsertLink = (rel: string, href: string) => {
-  let link = document.querySelector(`link[rel=\"${rel}\"]`) as HTMLLinkElement | null;
+  let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
   if (!link) {
     link = document.createElement('link');
     link.setAttribute('rel', rel);

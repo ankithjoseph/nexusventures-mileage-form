@@ -22,7 +22,8 @@ const RequireAuth: React.FC<{ children: React.ReactElement }> = ({ children }) =
 
   // If not authenticated after initialization, redirect to /login and preserve the attempted path in state
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnTo=${returnTo}`} state={{ from: location }} replace />;
   }
 
   return children;
