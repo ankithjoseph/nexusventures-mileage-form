@@ -111,6 +111,10 @@ const Login: React.FC = () => {
       toast({ title: 'Name required', description: 'Please enter your full name', variant: 'destructive' });
       return;
     }
+    if (password.length < 8) {
+      toast({ title: 'Password too short', description: 'Password must be at least 8 characters long', variant: 'destructive' });
+      return;
+    }
     if (password !== passwordConfirm) {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
@@ -146,7 +150,14 @@ const Login: React.FC = () => {
       setMode('login');
     } catch (err: any) {
       console.error('Signup error', err);
-      toast({ title: 'Signup failed', description: err?.message || 'Unable to create account', variant: 'destructive' });
+      let errorMessage = err?.message || 'Unable to create account';
+      if (err?.data?.data) {
+        const messages = Object.values(err.data.data).map((e: any) => e.message).filter(Boolean);
+        if (messages.length > 0) {
+          errorMessage = messages.join('. ');
+        }
+      }
+      toast({ title: 'Signup failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
