@@ -27,10 +27,36 @@ export const Header = () => {
     if (location.pathname === '/sepa-dd') {
       return t('app.title.sepa');
     }
+    if (location.pathname === '/card-payment') {
+      return t('app.title.card');
+    }
+    if (location.pathname === '/aml-form') {
+      return t('app.title.aml');
+    }
+    if (location.pathname === '/company-incorporation') {
+      return t('app.title.incorporation');
+    }
     if (location.pathname === '/mileage-book') {
       return t('app.title.mileage');
     }
     return t('app.title');
+  };
+
+  // Determine subtitle based on current route
+  const getPageSubtitle = () => {
+    if (location.pathname === '/sepa-dd') {
+      return t('app.subtitle.sepa');
+    }
+    if (location.pathname === '/card-payment') {
+      return t('app.subtitle.card');
+    }
+    if (location.pathname === '/aml-form') {
+      return t('app.subtitle.aml');
+    }
+    if (location.pathname === '/company-incorporation') {
+      return t('app.subtitle.incorporation');
+    }
+    return t('app.subtitle');
   };
 
   return (
@@ -49,7 +75,7 @@ export const Header = () => {
                 {getPageTitle()}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {t('app.subtitle')}
+                {getPageSubtitle()}
               </p>
             </div>
           </div>
