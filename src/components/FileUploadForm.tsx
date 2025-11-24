@@ -777,6 +777,15 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 <Input value={nationality} onChange={(e) => setNationality(e.target.value)} />
                 {fieldErrors.nationality && <div className="text-sm text-red-600 mt-1">{fieldErrors.nationality}</div>}
               </div>
+              <div>
+                <Label>Date of birth</Label>
+                <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                {fieldErrors.date && <div className="text-sm text-red-600 mt-1">{fieldErrors.date}</div>}
+              </div>
+              <div>
+                <Label>Profession</Label>
+                <Input value={activityDescription} onChange={(e) => setActivityDescription(e.target.value)} />
+              </div>
 
               <div className="md:col-span-2">
                 <Label>Address</Label>
@@ -784,20 +793,6 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 {fieldErrors.address && <div className="text-sm text-red-600 mt-1">{fieldErrors.address}</div>}
               </div>
             </div>
-          </section>
-
-          {/* Date of birth */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-background p-4 rounded-md border">
-              <Label>Date of birth</Label>
-              <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
-              {fieldErrors.date && <div className="text-sm text-red-600 mt-1">{fieldErrors.date}</div>}
-            </div>
-          </section>
-
-          <section>
-            <Label>Profession</Label>
-            <Textarea value={activityDescription} onChange={(e) => setActivityDescription(e.target.value)} />
           </section>
 
           {/* Documents section with modern file boxes */}
