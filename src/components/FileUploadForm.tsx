@@ -294,7 +294,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
     if (!phone) errors.phone = 'Phone is required';
     if (!address) errors.address = 'Address is required';
     if (!nationality) errors.nationality = 'Nationality is required';
-    if (clientType === 'individual' && !dob) errors.date = 'Date of birth is required for individuals';
+    if (clientType === 'individual' && !dob) errors.date = 'Date of birth is required';
     if (clientType === 'company' && (!companyName || !companyCRO)) errors.company = 'Company name and CRO are required for companies';
     if (clientType === 'company' && !companyIncorpDate) errors.incorp = 'Date of incorporation is required for companies';
     if (!passportFile) errors.passport = 'Passport file is required';
@@ -384,7 +384,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
                 setEmail(aml.email ?? '');
                 setPhone(aml.phone ?? '');
                 setAddress(aml.address ?? '');
-                setClientType(aml.client_type === 'company' ? 'company' : 'individual');
+                // clientType is always individual now
                 setNationality(aml.nationality ?? '');
                 setDob(aml.date_of_birth ? formatToDateInput(aml.date_of_birth) : '');
                 setCompanyIncorpDate(aml.date_of_incorporation ? formatToDateInput(aml.date_of_incorporation) : '');
@@ -456,7 +456,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       setEmail(aml.email ?? '');
       setPhone(aml.phone ?? '');
       setAddress(aml.address ?? '');
-      setClientType(aml.client_type === 'company' ? 'company' : 'individual');
+      // clientType is always individual now
       setNationality(aml.nationality ?? '');
       setDob(aml.date_of_birth ? formatToDateInput(aml.date_of_birth) : '');
       setCompanyIncorpDate(aml.date_of_incorporation ? formatToDateInput(aml.date_of_incorporation) : '');
@@ -753,7 +753,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           <section className="bg-muted/20 p-4 rounded-md border">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium">Personal information</h2>
-              <Badge>{clientType === 'individual' ? 'Individual' : 'Company'}</Badge>
+              <Badge>Individual</Badge>
             </div>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -786,42 +786,17 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
             </div>
           </section>
 
-          {/* Client type and dates */}
+          {/* Date of birth */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-background p-4 rounded-md border">
-              <Label>Type of client</Label>
-              <select className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientType} onChange={(e) => setClientType(e.target.value as any)}>
-                <option value="individual">Individual</option>
-                <option value="company">Company</option>
-              </select>
-              {fieldErrors.clientType && <div className="text-sm text-red-600 mt-1">{fieldErrors.clientType}</div>}
-            </div>
-            <div className="bg-background p-4 rounded-md border">
-              <Label>{clientType === 'individual' ? 'Date of birth (for individuals)' : 'Date of incorporation (for companies)'}</Label>
-              <Input type="date" value={clientType === 'individual' ? dob : companyIncorpDate} onChange={(e) => clientType === 'individual' ? setDob(e.target.value) : setCompanyIncorpDate(e.target.value)} />
+              <Label>Date of birth</Label>
+              <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
               {fieldErrors.date && <div className="text-sm text-red-600 mt-1">{fieldErrors.date}</div>}
             </div>
           </section>
 
-          {clientType === 'company' && (
-            <section className="bg-muted/10 p-4 rounded-md border">
-              <h3 className="text-md font-medium mb-3">Company details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Company name</Label>
-                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Company CRO</Label>
-                  <Input value={companyCRO} onChange={(e) => setCompanyCRO(e.target.value)} />
-                  {fieldErrors.company && <div className="text-sm text-red-600 mt-1">{fieldErrors.company}</div>}
-                </div>
-              </div>
-            </section>
-          )}
-
           <section>
-            <Label>Short description of activity</Label>
+            <Label>Profession</Label>
             <Textarea value={activityDescription} onChange={(e) => setActivityDescription(e.target.value)} />
           </section>
 
