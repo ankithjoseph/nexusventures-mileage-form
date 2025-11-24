@@ -862,6 +862,9 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
           </section>
 
           <section className="bg-muted/10 p-3 rounded-md border">
+            <p className="text-xs text-muted-foreground mb-3">
+              The information provided is collected under our legal obligation to comply with Anti-Money Laundering (AML) and Counter-Terrorist Financing (CTF) regulations. Your data is transmitted securely to Nexus Ventures & Co. (TAIN 77706B) and retained for the period required by law.
+            </p>
             <div className="flex items-start gap-3">
               <Checkbox id="consent" checked={consent} onCheckedChange={(v) => setConsent(Boolean(v))} />
               <label htmlFor="consent" className="text-sm">I confirm the information is true and authorize Irish Tax Agents to use it for AML compliance.</label>
