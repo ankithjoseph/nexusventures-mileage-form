@@ -199,7 +199,7 @@ async function postFormToPocketBase({ form, usingWebFormData, pbClient }) {
   try {
     const token = pbClient?.authStore?.token;
     if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch (e) {}
+  } catch (e) { }
 
   const resp = await fetcher(pbUrl, { method: 'POST', headers, body: form });
   const text = await resp.text();
@@ -305,7 +305,7 @@ app.post('/api/pb-file', async (req, res) => {
     // If no fileToken, include Authorization header from the applied pbServer auth
     try {
       if (!fileToken && pbServer?.authStore?.token) headers['Authorization'] = `Bearer ${pbServer.authStore.token}`;
-    } catch (e) {}
+    } catch (e) { }
 
     const resp = await fetcher(url, { method: 'GET', headers });
     if (!resp.ok) {
@@ -472,10 +472,10 @@ app.post('/api/send-email', async (req, res) => {
     const subject = isExpenseReport
       ? `Nuevo Expense Report - ${name}`
       : isSepa
-      ? `Nuevo SEPA Mandate - ${name}`
-      : isCompanyIncorporation
-      ? `New Company Incorporation - ${name}`
-      : `Nuevo Registro de Business Mileage - ${name}`;
+        ? `Nuevo SEPA Mandate - ${name}`
+        : isCompanyIncorporation
+          ? `New Company Incorporation - ${name}`
+          : `Nuevo Registro de Business Mileage - ${name}`;
 
     let html = '';
     if (isExpenseReport) {
@@ -573,13 +573,13 @@ app.post('/api/send-email', async (req, res) => {
     }
 
     // Send email via Resend
-  const filename = isExpenseReport
-    ? 'expense-report.pdf'
-    : isSepa
-    ? 'sepa-mandate.pdf'
-    : isCompanyIncorporation
-    ? 'company-incorporation.pdf'
-    : 'mileage-logbook.pdf';
+    const filename = isExpenseReport
+      ? 'expense-report.pdf'
+      : isSepa
+        ? 'sepa-mandate.pdf'
+        : isCompanyIncorporation
+          ? 'company-incorporation.pdf'
+          : 'mileage-logbook.pdf';
 
     // Normalize pdfData: accept either raw base64 or data URL (data:...;base64,...)
     let base64 = pdfData ?? '';
@@ -624,7 +624,7 @@ app.post('/api/send-email', async (req, res) => {
           console.log('Preparing to persist submission to PocketBase collection "expense_reports"');
           console.log('PocketBase base URL:', POCKETBASE_URL);
           console.log('pbServer.authStore present:', !!pbServer?.authStore);
-          try { console.log('pbServer.authStore.token present:', Boolean(pbServer?.authStore?.token)); } catch (tErr) {}
+          try { console.log('pbServer.authStore.token present:', Boolean(pbServer?.authStore?.token)); } catch (tErr) { }
 
           // Build form and POST via helper functions
           const { form, usingWebFormData } = buildExpenseForm({ name, email, pps, type, req, base64, filename, pbClient: pbServer });
@@ -843,7 +843,7 @@ app.post('/api/send-aml', async (req, res) => {
       appliedPbToken = null;
     }
 
-  // Fetch record from PocketBase
+    // Fetch record from PocketBase
     let record;
     try {
       record = await pb.collection('aml_applications').getOne(recordId);
@@ -857,7 +857,7 @@ app.post('/api/send-aml', async (req, res) => {
     const email = record.email ?? '';
     const phone = record.phone ?? '';
     const clientType = record.client_type ?? '';
-    const createdAt = record.created ?? record.createdAt ?? '';
+    const updatedAt = record.updated ?? record.updatedAt ?? '';
 
     // Detect file fields — PocketBase stores file fields as arrays of filenames
     const fileEntries = [];
@@ -926,7 +926,7 @@ app.post('/api/send-aml', async (req, res) => {
           const headers = {};
           try {
             if (!fileToken && pb?.authStore?.token) headers['Authorization'] = `Bearer ${pb.authStore.token}`;
-          } catch (e) {}
+          } catch (e) { }
 
           const fRes = await fetcher(fileUrl, { method: 'GET', headers });
           if (!fRes || !fRes.ok) {
@@ -962,7 +962,7 @@ app.post('/api/send-aml', async (req, res) => {
           <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Email</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${email}</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Phone</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${phone}</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Client type</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${clientType}</td></tr>
-          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Submitted</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${createdAt}</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #eee;"><strong>Submitted</strong></td><td style="padding:8px; border-bottom:1px solid #eee;">${updatedAt}</td></tr>
         </table>
         <p style="margin-top:16px;">Attached files are included below.</p>
       </div>
@@ -1080,17 +1080,17 @@ const server = app.listen(port, '0.0.0.0', () => {
 // Handle graceful shutdown
 const gracefulShutdown = (signal) => {
   console.log(`Received ${signal}, shutting down gracefully...`);
-  
+
   server.close((err) => {
     if (err) {
       console.error('Error during server shutdown:', err);
       process.exit(1);
     }
-    
+
     console.log('Server closed successfully');
     process.exit(0);
   });
-  
+
   // Force close after 10 seconds
   setTimeout(() => {
     console.error('Could not close connections in time, forcefully shutting down');
