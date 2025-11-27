@@ -667,17 +667,9 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
       // For relation fields (maxSelect:1) PocketBase accepts the related record id as the field value
       formData.append('user', currentUserId);
 
-      // Create or update the record directly with the PocketBase client as the authenticated user
+      // Create a new record for each submission (history is preserved)
       // The SDK will attach the user's auth token automatically from pb.authStore
-      let resp: any = null;
-      if (existingAmlRecord && existingAmlRecord.id) {
-        // Update existing record (only append file fields if new files selected)
-        resp = await pb.collection('aml_applications').update(existingAmlRecord.id, formData);
-      } else {
-        // Ensure the relation field 'user' is set for new records
-        formData.append('user', currentUserId);
-        resp = await pb.collection('aml_applications').create(formData);
-      }
+      const resp = await pb.collection('aml_applications').create(formData);
 
       // do not clear the form immediately — keep values visible so the user can
       // verify what was submitted. We'll clear / reload after the user closes
