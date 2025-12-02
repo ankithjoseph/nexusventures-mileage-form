@@ -52,14 +52,63 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [lastAmlRecordId, setLastAmlRecordId] = useState<string | null>(null);
 
+  // Helper to convert HEIC to JPEG using server-side API
+  const convertHeicToJpeg = async (file: File): Promise<File> => {
+    const isHeic = (file.type === 'image/heic' || file.type === 'image/heif') || /\.(heic|heif)$/i.test(file.name);
+    if (!isHeic) return file;
 
-  const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+    try {
+      Swal.fire({
+        title: 'Processing...',
+        text: 'Converting HEIC image...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const resp = await fetch('/api/convert-heic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: base64 })
+      });
+
+      if (!resp.ok) throw new Error('Server conversion failed');
+      const data = await resp.json();
+      
+      // Convert base64 back to File
+      const byteCharacters = atob(data.file);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: data.type });
+      
+      const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+      const convertedFile = new File([blob], newName, { type: data.type });
+      
+      Swal.close();
+      return convertedFile;
+    } catch (e) {
+      console.error('HEIC conversion failed, using original', e);
+      Swal.close();
+      return file;
+    }
+  };
+
+  const handlePassportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0] ?? null;
     setPassportIsExisting(false);
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
 
-    if (!file) {
+    if (!rawFile) {
       setPassportFile(null);
       // clear any passport-specific field error
       setFieldErrors((prev) => {
@@ -67,32 +116,36 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         delete copy.passport;
         return copy;
       });
-      return true;
+      return;
     }
 
-    if (file.size > maxSizeBytes) {
+    if (rawFile.size > maxSizeBytes) {
       setPassportFile(null);
       setFieldErrors((prev) => ({ ...prev, passport: 'Passport file is too large (max 10MB)' }));
-      return false;
+      return;
     }
 
     // Some browsers/OS (especially iOS camera) may not set a MIME type for HEIC/HEIF or photos; fall back to extension check
-    const fname = file.name || '';
+    const fname = rawFile.name || '';
     const extOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(fname);
-    if (!allowedTypes.includes(file.type) && !extOk) {
+    if (!allowedTypes.includes(rawFile.type) && !extOk) {
       setPassportFile(null);
       setFieldErrors((prev) => ({ ...prev, passport: 'Passport file must be PNG, JPG, HEIC/HEIF or PDF' }));
-      return false;
+      return;
     }
 
-    // accepted
-    setPassportFile(file);
+    // accepted - check for HEIC conversion
+    const fileToUse = await convertHeicToJpeg(rawFile);
+    
+    setPassportFile(fileToUse);
     setFieldErrors((prev) => {
       const copy = { ...prev };
       delete copy.passport;
       return copy;
     });
-    return true;
+    
+    // Show preview immediately with the (possibly converted) file
+    showPreviewSwal(fileToUse, fileToUse.name, fileToUse.type);
   };
 
   // When an existing AML record is present, attach stored files as File objects
@@ -165,44 +218,49 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
 
 
 
-  const handleProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  const handleProofChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0] ?? null;
     setProofIsExisting(false);
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['image/png', 'image/jpeg', 'image/heic', 'image/heif', 'application/pdf'];
 
-    if (!file) {
+    if (!rawFile) {
       setProofFile(null);
       setFieldErrors((prev) => {
         const copy = { ...prev };
         delete copy.proof;
         return copy;
       });
-      return true;
+      return;
     }
 
-    if (file.size > maxSizeBytes) {
+    if (rawFile.size > maxSizeBytes) {
       setProofFile(null);
       setFieldErrors((prev) => ({ ...prev, proof: 'Proof of address file is too large (max 10MB)' }));
-      return false;
+      return;
     }
 
     // Some browsers/OS may not set a MIME type for HEIC/HEIF; fall back to extension check
-    const pfname = file.name || '';
+    const pfname = rawFile.name || '';
     const pfExtOk = /\.(png|jpe?g|heic|heif|pdf)$/i.test(pfname);
-    if (!allowedTypes.includes(file.type) && !pfExtOk) {
+    if (!allowedTypes.includes(rawFile.type) && !pfExtOk) {
       setProofFile(null);
       setFieldErrors((prev) => ({ ...prev, proof: 'Proof of address must be PNG, JPG, HEIC/HEIF or PDF' }));
-      return false;
+      return;
     }
 
-    setProofFile(file);
+    // accepted - check for HEIC conversion
+    const fileToUse = await convertHeicToJpeg(rawFile);
+
+    setProofFile(fileToUse);
     setFieldErrors((prev) => {
       const copy = { ...prev };
       delete copy.proof;
       return copy;
     });
-    return true;
+    
+    // Show preview immediately
+    showPreviewSwal(fileToUse, fileToUse.name, fileToUse.type);
   };
 
   // Show preview using SweetAlert2. Accepts a Blob (File) or a URL string.
@@ -218,7 +276,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
         mime = mime || (source as Blob).type || mime;
       }
 
-      const isImage = !!(mime && mime.startsWith('image')) || /\.(jpg|jpeg|png|gif)$/i.test(name || '');
+      const isImage = !!(mime && mime.startsWith('image')) || /\.(jpg|jpeg|png|gif|webp)$/i.test(name || '');
       const isPdf = (mime === 'application/pdf') || (name || '').toLowerCase().endsWith('.pdf') || url.toLowerCase().endsWith('.pdf');
 
       const container = document.createElement('div');
@@ -808,7 +866,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               <Input
                 type="file"
                 accept="image/*,application/pdf,.heic,.heif"
-                onChange={(e) => { const file = e.target.files?.[0]; const ok = handlePassportChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
+                onChange={(e) => handlePassportChange(e)}
               />
               <div className="mt-2 flex items-center gap-2">
                 {passportFile && <button type="button" className="text-sm text-primary underline" onClick={() => passportFile && showPreviewSwal(passportFile, passportFile.name, passportFile.type)}>Preview</button>}
@@ -837,7 +895,7 @@ const FileUploadForm: React.FC<Props> = ({ onComplete }) => {
               <Input
                 type="file"
                 accept="image/*,application/pdf,.heic,.heif"
-                onChange={(e) => { const file = e.target.files?.[0]; const ok = handleProofChange(e); if (ok && file) showPreviewSwal(file, file.name, file.type); }}
+                onChange={(e) => handleProofChange(e)}
               />
               <div className="mt-2 flex items-center gap-2">
                 {proofFile && <button type="button" className="text-sm text-primary underline" onClick={() => proofFile && showPreviewSwal(proofFile, proofFile.name, proofFile.type)}>Preview</button>}
