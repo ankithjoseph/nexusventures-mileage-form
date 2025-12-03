@@ -1097,6 +1097,24 @@ app.post('/api/convert-heic', async (req, res) => {
   }
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  // Handle "request aborted" error from body-parser/raw-body
+  if (err.type === 'request.aborted') {
+    console.warn('Request aborted by the client');
+    return res.status(400).json({ error: 'Request aborted' });
+  }
+  
+  // Handle payload too large
+  if (err.type === 'entity.too.large') {
+    console.warn('Request payload too large');
+    return res.status(413).json({ error: 'Payload too large' });
+  }
+
+  console.error('Unhandled Express error:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
+
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Email server running on port ${port}`);
 });
