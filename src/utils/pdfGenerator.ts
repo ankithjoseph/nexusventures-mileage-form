@@ -906,7 +906,7 @@ export const generateSepaPDF = (data: SepaPdfData) => {
   doc.rect(12, y, pageWidth - 24, 26);
   doc.setFontSize(9);
   doc.text('*Creditors Name : Nexus Ventures Limited & Irish Tax Agents Limited', 14, y + 6);
-  doc.text('*Creditors : Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2', 14, y + 12);
+  doc.text('*Creditors Address: Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2', 14, y + 12);
   doc.text('*Country : Republic of Ireland', 14, y + 18);
 
   y += 36;

@@ -288,7 +288,7 @@ const SepaDd: React.FC = () => {
             {/* Info box */}
             <div className="border p-3 text-sm bg-white">
               <p className="mb-1">*Creditors Name : Nexus Ventures Limited & Irish Tax Agents Limited</p>
-              <p className="mb-1">*Creditors : Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2</p>
+              <p className="mb-1">*Creditors Address: Nexus, Officepods Cranford Centre, Stillorgan Rd., Dublin. D04F1P2</p>
               <p>*Country : Republic of Ireland</p>
             </div>
 
