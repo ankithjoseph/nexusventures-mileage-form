@@ -14,6 +14,7 @@ import fs from 'fs/promises';
 import FormData from 'form-data';
 import compression from 'compression';
 import helmet from 'helmet';
+import heicConvert from 'heic-convert';
 
 // Use global fetch when available (Node 18+). If not present, try to dynamically
 // import `node-fetch`. We avoid a static import so the server can run without
@@ -1072,6 +1073,47 @@ app.post('/api/request-password-reset', async (req, res) => {
 
 // NOTE: server-side AML file upload endpoint removed. Uploads should be handled
 // directly by the client against PocketBase or an upload-specific server/service.
+
+app.post('/api/convert-heic', async (req, res) => {
+  try {
+    const { file } = req.body; // file is base64 string
+    if (!file) return res.status(400).json({ error: 'No file provided' });
+
+    // Remove data URL prefix if present (handle various mime types or missing mime types)
+    const base64Data = file.replace(/^data:.*?;base64,/, '');
+    const inputBuffer = Buffer.from(base64Data, 'base64');
+
+    const outputBuffer = await heicConvert({
+      buffer: inputBuffer,
+      format: 'JPEG',
+      quality: 0.8
+    });
+
+    const base64Output = outputBuffer.toString('base64');
+    res.json({ file: base64Output, type: 'image/jpeg' });
+  } catch (err) {
+    console.error('HEIC conversion error:', err);
+    res.status(500).json({ error: 'Conversion failed' });
+  }
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  // Handle "request aborted" error from body-parser/raw-body
+  if (err.type === 'request.aborted') {
+    console.warn('Request aborted by the client');
+    return res.status(400).json({ error: 'Request aborted' });
+  }
+  
+  // Handle payload too large
+  if (err.type === 'entity.too.large') {
+    console.warn('Request payload too large');
+    return res.status(413).json({ error: 'Payload too large' });
+  }
+
+  console.error('Unhandled Express error:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
 
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Email server running on port ${port}`);
