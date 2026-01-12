@@ -38,7 +38,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
   yPos += 11;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
+  doc.text(t ? t('app.subtitle') : 'Ireland – Employee/Director', marginLeft, yPos);
   yPos += 12;
 
   // Driver & Vehicle Information
@@ -309,7 +309,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   yPos += 11;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
+  doc.text(t ? t('app.subtitle') : 'Ireland – Employee/Director', marginLeft, yPos);
   yPos += 12;
 
   // Personal Information
