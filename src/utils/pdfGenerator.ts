@@ -38,7 +38,7 @@ export const generatePDF = (data: LogbookData, _includeFillableFields: boolean =
   yPos += 11;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
+  doc.text(t ? t('app.subtitle') : 'Employee/Director', marginLeft, yPos);
   yPos += 12;
 
   // Driver & Vehicle Information
@@ -309,7 +309,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   yPos += 11;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(t ? t('app.subtitle') : 'Employee/Director, Tax Year 2024', marginLeft, yPos);
+  doc.text(t ? t('app.subtitle') : 'Employee/Director', marginLeft, yPos);
   yPos += 12;
 
   // Personal Information
@@ -376,7 +376,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   });
 
   yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
-    // Add space before next section
+  // Add space before next section
   yPos += 15;
 
   // Mileage
@@ -406,7 +406,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   });
 
   yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
-    // Add space before next section
+  // Add space before next section
   yPos += 15;
 
   // Expenses
@@ -436,7 +436,7 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
   });
 
   yPos = doc.lastAutoTable?.finalY ?? yPos + 10;
-    // Add space before next section
+  // Add space before next section
   yPos += 15;
 
   // Notes
@@ -451,8 +451,8 @@ export const generateExpensePDF = (formData: any, t?: (key: string) => string) =
     const splitNotes = doc.splitTextToSize(formData.notas, contentWidth);
     doc.text(splitNotes, marginLeft, yPos);
     yPos += splitNotes.length * 5 + 10;
-      // Add space before next section
-  yPos += 15;
+    // Add space before next section
+    yPos += 15;
   }
 
   // Declaration
@@ -767,13 +767,13 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
     if (data.signatureData) {
       doc.addImage(data.signatureData as string, 'PNG', sigX, sigY, sigW, sigH);
     }
-  } catch {}
+  } catch { }
 
   if (data.signatureDate) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     const dateX = sigX + sigW + 8;
-    const dateY = sigY + sigH - (sigH/2);
+    const dateY = sigY + sigH - (sigH / 2);
     const pageMaxX = doc.internal.pageSize.getWidth() - 12; // respect right margin
     const text = "Date: " + String(data.signatureDate);
     if (dateX + 30 > pageMaxX) {
@@ -831,7 +831,7 @@ export const generateSepaPDF = (data: SepaPdfData) => {
     const logoW = 30;
     const logoH = 12;
     doc.addImage(logoImage as unknown as string, 'PNG', pageWidth - 12 - logoW, 12, logoW, logoH);
-  } catch {}
+  } catch { }
 
   const headerBottom = 10 + 18;
   const creditorBandY = headerBottom + 2;
@@ -938,7 +938,7 @@ export const generateSepaPDF = (data: SepaPdfData) => {
     if (data.signatureData) {
       doc.addImage(data.signatureData, 'PNG', sigX + 2, sigY + 2, sigW - 4, sigH - 4);
     }
-  } catch {}
+  } catch { }
 
   return doc;
 };
@@ -972,7 +972,7 @@ export const generateCardPaymentPDF = (data: CardPaymentPdfData) => {
     const logoW = 30;
     const logoH = 14;
     doc.addImage(italogo as unknown as string, 'PNG', pageWidth - 12 - logoW, 12, logoW, logoH);
-  } catch {}
+  } catch { }
 
   const headerBottom = 10 + 18;
   const creditorBandY = headerBottom + 2;
@@ -1076,7 +1076,7 @@ export const generateCardPaymentPDF = (data: CardPaymentPdfData) => {
     if (data.signatureData) {
       doc.addImage(data.signatureData, 'PNG', sigX + 2, sigY + 2, sigW - 4, sigH - 4);
     }
-  } catch {}
+  } catch { }
 
   return doc;
 };
