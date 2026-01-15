@@ -653,17 +653,7 @@ export const generateCompanyIncorporationPDF = (data: CompanyIncorporationData) 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
 
-  if (data.secretary?.isNexusSecretary) {
-    yPos += 2;
-    const text = 'NEXUS VENTURES to be appointed as company secretary';
-    const lines = doc.splitTextToSize(text, contentWidth);
-    ensureSpace((lines as string[]).length * 5 + 2);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(lines, marginLeft, yPos);
-    //yPos += 8;
-    (doc as any).lastAutoTable = undefined;
-  } else if (data.secretary) {
+  if (data.secretary) {
     autoTable(doc, {
       startY: yPos,
       head: [],
