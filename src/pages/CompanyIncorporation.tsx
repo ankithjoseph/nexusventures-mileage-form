@@ -6,6 +6,7 @@ import CompanyIncorporationForm from '@/components/CompanyIncorporationForm';
 import { generateCompanyIncorporationPDF } from '@/utils/pdfGenerator';
 import type { CompanyIncorporationData } from '@/components/CompanyIncorporationForm';
 import { toast } from '@/components/ui/use-toast';
+import pb from '@/lib/pocketbase';
 
 const CompanyIncorporation = () => {
   const handleSubmit = async (data: CompanyIncorporationData) => {
@@ -33,11 +34,20 @@ const CompanyIncorporation = () => {
         pps: '',
         pdfData: base64PDF,
         type: 'company-incorporation',
+        pb_user_id: (pb.authStore as any)?.model?.id ?? null,
       };
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const token = (pb.authStore as any)?.token;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } catch (e) {
+        // ignore if authStore not available
+      }
 
       const resp = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       });
 

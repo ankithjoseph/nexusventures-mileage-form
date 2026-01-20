@@ -14,6 +14,8 @@ import { Header } from "@/components/Header";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ThankYouDialog from '@/components/ThankYouDialog';
 
+import pb from '@/lib/pocketbase';
+
 const MileageBook = () => {
   const [formData, setFormData] = useState<LogbookData>(createEmptyLogbook());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,19 +105,29 @@ const MileageBook = () => {
         const base64PDF = reader.result?.toString().split(',')[1];
 
         // Send email with PDF attachment
+        // Include PocketBase user id and token for server-side persistence
         const emailData = {
           name: formData.driver_name,
           email: formData.driver_email,
           pps: formData.ppsn || 'N/A',
           pdfData: base64PDF,
-          type: 'mileage-logbook'
+          type: 'mileage-logbook',
+          pb_user_id: (pb.authStore as any)?.model?.id ?? null,
         };
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        try {
+          const token = (pb.authStore as any)?.token;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } catch (e) {
+          // ignore if authStore not available
+        }
 
         const response = await fetch('/api/send-email', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(emailData),
         });
 
@@ -213,10 +225,10 @@ const MileageBook = () => {
       <ThankYouDialog
         open={thankYouOpen}
         onOpenChange={(v) => setThankYouOpen(v)}
-        title={ 'Thank you'}
-        description={ 'Your mileage logbook has been submitted. A copy has been emailed to you.'}
+        title={'Thank you'}
+        description={'Your mileage logbook has been submitted. A copy has been emailed to you.'}
         primaryLabel={'New form'}
-        onPrimary={() => {resetForm() ; setThankYouOpen(false);}}
+        onPrimary={() => { resetForm(); setThankYouOpen(false); }}
       />
 
       <Footer title="Business Mileage Logbook" subtitle="For tax compliance purposes. Keep records for at least 6 years." />

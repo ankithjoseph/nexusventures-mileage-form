@@ -1,6 +1,0 @@
-check error. inline
-cardpayment pdf size
-validation error
-spainish
-different toasts and notification-- unify them
-company incorporation form removed

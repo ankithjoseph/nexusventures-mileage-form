@@ -140,30 +140,99 @@ function buildExpenseForm({ name, email, pps, type, req, base64, filename, pbCli
     form = new FormData();
   }
 
-  // Map Spanish -> English field ids
+  // Core fields: name, email, pdf, user only
   form.append('name', name || '');
   form.append('email', email || '');
-  form.append('pps', pps || '');
-  form.append('trip_reason', req.body.motivo_viaje || '');
-  form.append('trip_date', req.body.fecha_viaje || '');
-  form.append('origin', req.body.origen || '');
-  form.append('destination', req.body.destino || '');
-  form.append('license_plate', req.body.matricula || '');
-  form.append('make_model', req.body.marca_modelo || '');
-  form.append('fuel_type', req.body.tipo_combustible || '');
-  form.append('co2_g_km', req.body.co2_g_km || '');
-  form.append('km_start', req.body.km_inicio || '');
-  form.append('km_end', req.body.km_final || '');
-  form.append('business_km', req.body.suma_km_trabajo || '');
-  form.append('tolls', req.body.peajes || '');
-  form.append('parking', req.body.parking || '');
-  form.append('fuel_cost', req.body.combustible || '');
-  form.append('meals', req.body.dietas || '');
-  form.append('accommodation', req.body.alojamiento || '');
-  form.append('notes', req.body.notas || '');
-  form.append('signature', req.body.firma || '');
-  form.append('signature_date', req.body.fecha_firma || '');
-  form.append('form_type', type || 'expense-report');
+
+  // Attach PDF
+  try {
+    const pdfBuffer = Buffer.from(base64, 'base64');
+    if (usingWebFormData) {
+      const pdfBlob = new globalThis.Blob([pdfBuffer], { type: 'application/pdf' });
+      form.append('pdf', pdfBlob, filename);
+    } else {
+      form.append('pdf', pdfBuffer, { filename, contentType: 'application/pdf' });
+    }
+  } catch (bufErr) {
+    console.warn('Failed to attach PDF buffer to FormData:', bufErr?.message || bufErr);
+  }
+
+  // user relation
+  try {
+    const suppliedUserId = req.body?.pb_user_id || req.body?.user || req.body?.userId || null;
+    const authStoreUserId = pbClient?.authStore?.model?.id ?? pbClient?.authStore?.model?.record?.id ?? null;
+    const userId = suppliedUserId || authStoreUserId;
+    if (userId) form.append('user', String(userId));
+  } catch (e) {
+    // non-fatal
+  }
+
+  return { form, usingWebFormData };
+}
+
+/** Build a multipart FormData for a mileage logbook. Returns { form, usingWebFormData } */
+function buildMileageForm({ name, email, pps, req, base64, filename, pbClient }) {
+  let form;
+  let usingWebFormData = false;
+  try {
+    if (typeof globalThis.FormData === 'function' && typeof globalThis.Blob === 'function') {
+      form = new globalThis.FormData();
+      usingWebFormData = true;
+    } else {
+      form = new FormData();
+    }
+  } catch (e) {
+    form = new FormData();
+  }
+
+  // Core fields: name, email, pdf, user only
+  form.append('name', name || '');
+  form.append('email', email || '');
+
+  // Attach PDF
+  try {
+    const pdfBuffer = Buffer.from(base64, 'base64');
+    if (usingWebFormData) {
+      const pdfBlob = new globalThis.Blob([pdfBuffer], { type: 'application/pdf' });
+      form.append('pdf', pdfBlob, filename);
+    } else {
+      form.append('pdf', pdfBuffer, { filename, contentType: 'application/pdf' });
+    }
+  } catch (bufErr) {
+    console.warn('Failed to attach PDF buffer to FormData:', bufErr?.message || bufErr);
+  }
+
+  // user relation
+  try {
+    const suppliedUserId = req.body?.pb_user_id || req.body?.user || req.body?.userId || null;
+    const authStoreUserId = pbClient?.authStore?.model?.id ?? pbClient?.authStore?.model?.record?.id ?? null;
+    const userId = suppliedUserId || authStoreUserId;
+    if (userId) form.append('user', String(userId));
+  } catch (e) {
+    // non-fatal
+  }
+
+  return { form, usingWebFormData };
+}
+
+/** Build a multipart FormData for a company incorporation. Returns { form, usingWebFormData } */
+function buildCompanyIncorporationForm({ name, email, req, base64, filename, pbClient }) {
+  let form;
+  let usingWebFormData = false;
+  try {
+    if (typeof globalThis.FormData === 'function' && typeof globalThis.Blob === 'function') {
+      form = new globalThis.FormData();
+      usingWebFormData = true;
+    } else {
+      form = new FormData();
+    }
+  } catch (e) {
+    form = new FormData();
+  }
+
+  // Core fields: name, email, pdf, user only
+  form.append('name', name || '');
+  form.append('email', email || '');
 
   // Attach PDF
   try {
@@ -192,9 +261,9 @@ function buildExpenseForm({ name, email, pps, type, req, base64, filename, pbCli
 }
 
 /** Post a multipart form to PocketBase records API and return parsed JSON */
-async function postFormToPocketBase({ form, usingWebFormData, pbClient }) {
+async function postFormToPocketBase({ form, usingWebFormData, pbClient, collectionName = 'expense_reports' }) {
   const fetcher = await getFetcher();
-  const pbUrl = `${POCKETBASE_URL.replace(/\/$/, '')}/api/collections/expense_reports/records`;
+  const pbUrl = `${POCKETBASE_URL.replace(/\/$/, '')}/api/collections/${collectionName}/records`;
   // headers: if node form-data, include boundary via getHeaders(); for web FormData, let fetch set it
   const headers = (typeof form.getHeaders === 'function') ? Object.assign({}, form.getHeaders()) : {};
   try {
@@ -629,14 +698,41 @@ app.post('/api/send-email', async (req, res) => {
 
           // Build form and POST via helper functions
           const { form, usingWebFormData } = buildExpenseForm({ name, email, pps, type, req, base64, filename, pbClient: pbServer });
-          const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer });
+          const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer, collectionName: 'expense_reports' });
           pbSaved = { saved: true, id: pbResult?.id ?? null, error: null };
           console.log('Saved expense report to PocketBase (with file):', pbSaved.id ?? '(no id)');
         } catch (pbErr) {
           pbSaved = { saved: false, id: null, error: String(pbErr?.message || pbErr) };
           console.warn('PocketBase save (expense_reports) failed (non-fatal):', pbErr?.message || pbErr);
         }
+      } else if (type === 'mileage-logbook') {
+        // Persist mileage logbook to PocketBase
+        try {
+          applyPbTokenFromRequest(pbServer, req);
+          console.log('Preparing to persist submission to PocketBase collection "mileage_logbooks"');
+          const { form, usingWebFormData } = buildMileageForm({ name, email, pps, req, base64, filename, pbClient: pbServer });
+          const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer, collectionName: 'mileage_logbooks' });
+          pbSaved = { saved: true, id: pbResult?.id ?? null, error: null };
+          console.log('Saved mileage logbook to PocketBase (with file):', pbSaved.id ?? '(no id)');
+        } catch (pbErr) {
+          pbSaved = { saved: false, id: null, error: String(pbErr?.message || pbErr) };
+          console.warn('PocketBase save (mileage_logbooks) failed (non-fatal):', pbErr?.message || pbErr);
+        }
+      } else if (isCompanyIncorporation) {
+        // Persist company incorporation to PocketBase
+        try {
+          applyPbTokenFromRequest(pbServer, req);
+          console.log('Preparing to persist submission to PocketBase collection "company_incorporations"');
+          const { form, usingWebFormData } = buildCompanyIncorporationForm({ name, email, req, base64, filename, pbClient: pbServer });
+          const pbResult = await postFormToPocketBase({ form, usingWebFormData, pbClient: pbServer, collectionName: 'company_incorporations' });
+          pbSaved = { saved: true, id: pbResult?.id ?? null, error: null };
+          console.log('Saved company incorporation to PocketBase (with file):', pbSaved.id ?? '(no id)');
+        } catch (pbErr) {
+          pbSaved = { saved: false, id: null, error: String(pbErr?.message || pbErr) };
+          console.warn('PocketBase save (company_incorporations) failed (non-fatal):', pbErr?.message || pbErr);
+        }
       } else {
+        // SEPA and Card Payment forms are NOT persisted to PocketBase
         pbSaved = { saved: false, id: null, error: null };
       }
 
@@ -1104,7 +1200,7 @@ app.use((err, req, res, next) => {
     console.warn('Request aborted by the client');
     return res.status(400).json({ error: 'Request aborted' });
   }
-  
+
   // Handle payload too large
   if (err.type === 'entity.too.large') {
     console.warn('Request payload too large');

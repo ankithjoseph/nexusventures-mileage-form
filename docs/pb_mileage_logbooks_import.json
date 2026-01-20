@@ -1,12 +1,12 @@
 [
     {
-        "id": "pbc_expense_reports",
+        "id": "pbc_mileage_logbooks",
         "listRule": "@request.auth.id != '' && user = @request.auth.id",
         "viewRule": "@request.auth.id != '' && user = @request.auth.id",
         "createRule": "@request.auth.id != ''",
         "updateRule": "@request.auth.id != '' && user = @request.auth.id",
         "deleteRule": null,
-        "name": "expense_reports",
+        "name": "mileage_logbooks",
         "type": "base",
         "fields": [
             {
@@ -99,8 +99,8 @@
             }
         ],
         "indexes": [
-            "CREATE INDEX `idx_expense_reports_user` ON `expense_reports` (`user`)",
-            "CREATE INDEX `idx_expense_reports_email` ON `expense_reports` (`email`)"
+            "CREATE INDEX `idx_mileage_logbooks_user` ON `mileage_logbooks` (`user`)",
+            "CREATE INDEX `idx_mileage_logbooks_email` ON `mileage_logbooks` (`email`)"
         ]
     }
 ]
